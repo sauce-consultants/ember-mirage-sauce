@@ -1,9 +1,12 @@
 {
   "name": "ember-mirage-sauce",
   "version": "0.0.1",
-  "description": "The default blueprint for ember-cli addons.",
+  "description": "Mirage Sauce adds some common functionality to mirage based json apis.",
   "keywords": [
-    "ember-addon"
+    "ember-addon",
+    "ember-cli-mirage",
+    "jsonapi",
+    "mirage"
   ],
   "license": "MIT",
   "author": "",
@@ -11,7 +14,7 @@
     "doc": "doc",
     "test": "tests"
   },
-  "repository": "",
+  "repository": "https://github.com/sauce-consultants/ember-mirage-sauce",
   "scripts": {
     "build": "ember build",
     "lint:js": "eslint ./*.js addon addon-test-support app config lib server test-support tests",
