@@ -54,6 +54,7 @@ export default JSONAPISerializer.extend({
     filters.forEach((filter) => {
       data = data.filter((record) => {
         let match = false;
+        filter.property = dasherize(filter.property);
         filter.values.forEach((value) => {
           // Check for an attribute match
           if (filter.property === 'search' && value) {
