@@ -56,12 +56,19 @@ export default JSONAPISerializer.extend({
         let match = false;
         filter.property = dasherize(filter.property);
         filter.values.forEach((value) => {
+          let attribute = get(record, `attributes.${filter.property}`);
+          
+          // Convert bool to string
+          if(typeof(attribute) === "boolean") {
+            attribute = attribute.toString();
+          }
+          
           // Check for an attribute match
           if (filter.property === 'search' && value) {
             if (this.filterBySearch(record, value)) {
               match = true;
             }
-          } else if (value === get(record, `attributes.${filter.property}`)) {
+          } else if (value === attribute) {
             match = true;
           } else if (filter.property.endsWith('Id')) {
             let relationship = filter.property.replace('Id', ''),
