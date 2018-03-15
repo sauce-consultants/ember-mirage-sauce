@@ -105,7 +105,7 @@ export default JSONAPISerializer.extend({
     let desc = false,
       data = json.data;
 
-    if (sort) {
+    if (sort && data.length > 0) {
       // does this sort param start with "-"
       if (sort.indexOf('-') === 0) {
         // sort decending
