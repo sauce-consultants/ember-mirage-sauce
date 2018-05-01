@@ -1,5 +1,29 @@
 {{docs-hero
-  logo='ember'
-  slimHeading='My'
-  strongHeading='Addon'
-  byline='My addon demo/marketing page.'}}
+  logo='ember-cli'
+  slimHeading='Ember'
+  strongHeading='MirageSauce'
+  byline='Add extra JSONAPI goodness to your mirage API'}}
+
+  <div class='docs-container docs-md'>
+    <section class='max-w-md mx-auto pb-8'>
+      <h2 class='flex items-center mt-8 docs-h2'>
+        {{svg-jar 'logo-horizontal' width=40 height=16
+          class='mr-2'}}
+        Motivation
+      </h2>
+      <aside>Looking for the quickstart? {{docs-link 'Click here' 'docs.quickstart'}}.</aside>
+      <p>This Addon adds some extra jsonapi features out of the box to your mirage APIs.</p>
+      <ul>
+        <li>Filtering</li>
+        <li>Pagination</li>
+        <li>Search</li>
+        <li>Sorting</li>
+      </ul>
+
+      <div class="my-16 text-right">
+        {{#link-to 'docs' class='bg-grey-darkest hover:bg-black text-white py-2 px-4 no-underline rounded'}}
+          Read the docs →
+        {{/link-to}}
+      </div>
+  </section>
+</div>

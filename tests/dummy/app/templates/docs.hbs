@@ -2,7 +2,13 @@
 
   {{#viewer.nav as |nav|}}
     {{nav.item 'Introduction' 'docs.index'}}
+    {{nav.item 'Quickstart' 'docs.quickstart'}}
     {{nav.item 'Usage' 'docs.usage'}}
+    {{nav.section "Features"}}
+    {{nav.item 'Filtering' 'docs.filtering'}}
+    {{nav.item 'Pagination' 'docs.pagination'}}
+    {{nav.item 'Search' 'docs.search'}}
+    {{nav.item 'Sorting' 'docs.sorting'}}
   {{/viewer.nav}}
 
   {{#viewer.main}}
