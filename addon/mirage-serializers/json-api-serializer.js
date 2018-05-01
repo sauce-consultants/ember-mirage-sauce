@@ -18,43 +18,108 @@ import {
 } from 'ember-inflector';
 import Ember from 'ember';
 
+/**
+  A custom JSONAPISerializer that adds sorting, filtering, search &
+  pagination to api requests
 
+  ```js
+  // in mirage/serializers/application.js
+  import JSONAPISerializer from 'ember-mirage-sauce/mirage-serializers/json-api-serializer';
+
+  export default JSONAPISerializer.extend({});
+  ```
+
+  @class JSONAPISerializer
+*/
 export default JSONAPISerializer.extend({
   /**
-   * Define an array of fields in the model to fuzzy search
-   *
-   * @type {Array}
+    Define an array of fields in the model to fuzzy search
+
+    @property searchByFields
+    @type {Array}
    */
   searchByFields: A([]),
 
-  extractFilterParams(params) {
-    let filters = [];
-    for (var key in params) {
-      // loop though params and match any that follow the
-      // filter[foo] pattern. Then extract foo.
-      if (key.substr(0, 6) === 'filter') {
-        let property = key.substr(7, (key.length - 8)),
-          value = params[key],
-          values = null;
+  /**
+    Query param name for the search parameter
+    _Default: "search"
 
-        if (value) {
-          values = params[key].split(',');
-        }
+    @property searchKey
+    @default "search"
+    @type {string}
+   */
+  searchKey: 'search',
 
-        if (!isEmpty(values)) {
-          filters.pushObject({
-            property,
-            values
-          });
-        }
+  /**
+    Query param name for the sort parameter
+    _Default: "sort"
+
+    @property sortKey
+    @default "sort"
+    @type {string}
+   */
+  sortKey: 'sort',
+
+  /**
+    Query param name for the filter parameters
+    _Default: "filter"
+
+    @property filterKey
+    @default "filter"
+    @type {string}
+   */
+  filterKey: 'filter',
+
+  /**
+    Override the parent serializer to add support for search,
+    filter, sort & pagination
+
+    @method serialize
+    @access public
+    @param {Object} object
+    @param {Object} request
+    @return {Hash}
+   */
+  serialize(object, request) {
+    // This is how to call super, as Mirage borrows [Backbone's implementation of extend](http://backbonejs.org/#Model-extend)
+    let json = JSONAPISerializer.prototype.serialize.apply(this, arguments);
+
+    // Add metadata, sort parts of the response, etc.
+
+    // Is this a list response
+    if (Array.isArray(json.data)) {
+      // Get filter params from request
+      let filters = this._extractFilterParams(request.queryParams);
+      // Filter data
+      json.data = this.filterResponse(json.data, filters);
+      // Sort data
+      json.data = this.sortResponse(json, get(request.queryParams, get(this, 'sortKey')));
+      // Paginate?
+      if (request.queryParams['page[number]'] && request.queryParams['page[size]']) {
+        const page = parseInt(request.queryParams['page[number]']);
+        const size = parseInt(request.queryParams['page[size]']);
+
+        json = this.paginate(json, page, size);
       }
     }
-    return filters;
+
+    //
+    return json;
   },
+  /**
+    Filter responses by filter params
+
+    _NOTE! to filter by a relationship id it must be included
+    in the requests "include" param. Otherwise this serializer
+    does not include data from that relationship in it's 'data'_
+
+    @access protected
+    @method filterResponse
+    @param {Array} data
+    @param {Array} filters
+    @return {Array}
+   */
   filterResponse(data, filters) {
-    // NOTE! to filter by a relationship id it must be included
-    // in the requests "include" param. Otherwise this serializer
-    // does not include data from that relationship in it's 'data'
 
     filters.forEach((filter) => {
       data = data.filter((record) => {
@@ -69,7 +134,7 @@ export default JSONAPISerializer.extend({
           }
 
           // Check for an attribute match
-          if (filter.property === 'search' && value) {
+          if (filter.property === get(this, 'searchKey') && value) {
             if (this.filterBySearch(record, value)) {
               match = true;
             }
@@ -90,12 +155,13 @@ export default JSONAPISerializer.extend({
     return data;
   },
   /**
-   * Check if the model passes search filter
-   *
-   * @access protected
-   * @param {object}    record Serialised model instance to search
-   * @param {string}    term The search term
-   * @return {boolean}
+    Check if the model passes search filter
+
+    @access protected
+    @method filterBySearch
+    @param {object}    record Serialised model instance to search
+    @param {string}    term The search term
+    @return {boolean}
    */
   filterBySearch(record, term) {
 
@@ -118,11 +184,20 @@ export default JSONAPISerializer.extend({
 
     return matched;
   },
+  /**
+    Order responses by sort param
+
+    _Supports one sort param atm..._
+    http://jsonapi.org/format/#fetching-sorting
+
+    @access protected
+    @method sortResponse
+    @param {Array} data
+    @param {Array} filters
+    @return {Array}
+   */
   sortResponse(json, sort) {
-    // JSON API Sort logic
-    // ---
-    // Supports one sort param atm...
-    // http://jsonapi.org/format/#fetching-sorting
+
     let desc = false,
       data = json.data;
 
@@ -135,13 +210,13 @@ export default JSONAPISerializer.extend({
         sort = sort.substring(1);
       }
       // find the sort path
-      if (this.isAttribute(sort)) {
-        let path = this.getAttributePath(sort, data[0]);
+      if (this._isAttribute(sort)) {
+        let path = this._getAttributePath(sort, data[0]);
         // sort by property
         data = A(data).sortBy(path);
-      } else if (this.isRelatedAttribute(sort)) {
+      } else if (this._isRelatedAttribute(sort)) {
         // sort by related
-        data = this.sortByIncludedProperty(data, json.included, sort);
+        data = this._sortByIncludedProperty(data, json.included, sort);
       }
       // reverse sort order?
       if (desc) {
@@ -150,129 +225,16 @@ export default JSONAPISerializer.extend({
     }
     return data;
   },
-  sortByIncludedProperty(data, included, sort) {
-    let idPath = this.getRelatedIdPath(sort, data[0]),
-      model = this.getRelatedModel(sort),
-      attrPath = this.getRelatedAttributePath(sort, data[0]);
-    return data.sort((a, b) => {
-      const aId = get(a, idPath),
-        bId = get(b, idPath),
-        aRelated = this.findIncludedModelById(included, model, aId),
-        bRelated = this.findIncludedModelById(included, model, bId),
-        aVal = get(aRelated, attrPath),
-        bVal = get(bRelated, attrPath),
-        aNum = parseFloat(aVal),
-        bNum = parseFloat(bVal);
+  /**
+    Paginate response
 
-      // are they numbers?
-      if (isNaN(aVal) || isNaN(bVal)) {
-        return aVal < bVal;
-      } else {
-        return aNum < bNum;
-      }
-    });
-  },
-  isAttribute(path) {
-    return path.split('.').length === 1;
-  },
-  isRelatedAttribute(path) {
-    return path.split('.').length === 2;
-  },
-  getRelatedIdPath(property) {
-    // ensure param is underscored
-    property = dasherize(property);
-    // destructure property
-    const relatedModel = property.split('.')[0];
-    // define full path
-    const path = `relationships.${relatedModel}.data.id`;
-
-    return path;
-  },
-  getAttributePath(property, record) {
-    // ensure param is underscored
-    property = dasherize(property);
-    // define full path
-    const path = `attributes.${property}`;
-    // check if path is found
-    if (typeof get(record, path) === 'undefined') {
-      Ember.Logger.warn(`Mirage: Could not find path ${path}`);
-      Ember.Logger.warn(record);
-    }
-    return path;
-  },
-  getRelatedModel(property) {
-    // ensure param is underscored
-    property = dasherize(property);
-    // destructure property
-    property = property.split('.')[0];
-    return property;
-  },
-  getRelatedAttributePath(property) {
-    // ensure param is underscored
-    property = dasherize(property);
-    // destructure property
-    property = property.split('.')[1];
-    // define full path
-    const path = `attributes.${property}`;
-
-    return path;
-  },
-  findIncludedModelById(array, model, id) {
-    return array.find(function(item) {
-      return (get(item, 'type') === pluralize(model) && get(item, 'id') === id);
-    })
-  },
-  findRecordPath(property, record) {
-    let path;
-    // ensure param is underscored
-    property = dasherize(property);
-    // destructure property
-    const [a, b] = property.split('.');
-    // work out if this is a related property or not
-    // and return the key
-    if (!isEmpty(b)) {
-      path = `relationships.${a}.data.${b}`;
-    } else {
-      path = `attributes.${a}`;
-    }
-    // check if path is found
-    if (typeof get(record, path) === 'undefined') {
-      Ember.Logger.warn(`Mirage: Could not find path ${path}`);
-      Ember.Logger.warn(record);
-    }
-    // warn user else
-    return path;
-  },
-  serialize(object, request) {
-    // This is how to call super, as Mirage borrows [Backbone's implementation of extend](http://backbonejs.org/#Model-extend)
-    let json = JSONAPISerializer.prototype.serialize.apply(this, arguments);
-
-    // Add metadata, sort parts of the response, etc.
-
-    // Is this an collection response
-    if (Array.isArray(json.data)) {
-
-      // Get filter params from request
-      let filters = this.extractFilterParams(request.queryParams);
-      // Filter data
-      json.data = this.filterResponse(json.data, filters);
-      // Sort data
-      json.data = this.sortResponse(json, request.queryParams.sort);
-      // Paginate?
-      if (request.queryParams['page[number]'] && request.queryParams['page[size]']) {
-        const page = parseInt(request.queryParams['page[number]']);
-        const size = parseInt(request.queryParams['page[size]']);
-
-        json = this.paginate(json, page, size);
-      }
-    }
-
-    //
-    return json;
-  },
-  //
-  // PAGINATION
-  //
+    @access protected
+    @method paginate
+    @param {object} results data to be paginated
+    @param {number} page  current page
+    @param {number} size  current page size
+    @return {object}
+   */
   paginate(res, page, size) {
     const slicedResults = (results) => {
       const start = (page - 1) * size;
@@ -294,5 +256,144 @@ export default JSONAPISerializer.extend({
     res.data = slicedResults(res.data);
 
     return res;
-  }
+  },
+
+  // -------
+  // PRIVATE
+  // -------
+
+  /**
+    Extract filter parameters from the request
+
+    @access private
+    @param {Object} params
+    @return {Array}
+   */
+  _extractFilterParams(params) {
+    let filters = [];
+    for (var key in params) {
+      // loop though params and match any that follow the
+      // filter[foo] pattern. Then extract foo.
+      if (key.substr(0, 6) === get(this, 'filterKey')) {
+        let property = key.substr(7, (key.length - 8)),
+          value = params[key],
+          values = null;
+
+        if (value) {
+          values = params[key].split(',');
+        }
+
+        if (!isEmpty(values)) {
+          filters.pushObject({
+            property,
+            values
+          });
+        }
+      }
+    }
+    return filters;
+  },
+  /**
+    Sort models by a related property
+
+    @access private
+    @param {Array} data       Array of serialized models to sort
+    @param {Array} included   Collection of included serialized models
+    @param {string} sort      Sort property
+    @return {Array}
+   */
+  _sortByIncludedProperty(data, included, sort) {
+    let idPath = this._getRelatedIdPath(sort, data[0]),
+      model = this._getRelatedModel(sort),
+      attrPath = this._getRelatedAttributePath(sort, data[0]);
+
+    return data.sort((a, b) => {
+      const aId = get(a, idPath),
+        bId = get(b, idPath),
+        aRelated = this._findIncludedModelById(included, model, aId),
+        bRelated = this._findIncludedModelById(included, model, bId),
+        aVal = get(aRelated, attrPath),
+        bVal = get(bRelated, attrPath),
+        aNum = parseFloat(aVal),
+        bNum = parseFloat(bVal);
+
+      // are they numbers?
+      if (isNaN(aVal) || isNaN(bVal)) {
+        return aVal < bVal;
+      } else {
+        return aNum < bNum;
+      }
+    });
+  },
+  _isAttribute(path) {
+    return path.split('.').length === 1;
+  },
+  _isRelatedAttribute(path) {
+    return path.split('.').length === 2;
+  },
+  _getRelatedIdPath(property) {
+    // ensure param is underscored
+    property = dasherize(property);
+    // destructure property
+    const relatedModel = property.split('.')[0];
+    // define full path
+    const path = `relationships.${relatedModel}.data.id`;
+
+    return path;
+  },
+  _getAttributePath(property, record) {
+    // ensure param is underscored
+    property = dasherize(property);
+    // define full path
+    const path = `attributes.${property}`;
+    // check if path is found
+    if (typeof get(record, path) === 'undefined') {
+      Ember.Logger.warn(`Mirage: Could not find path ${path}`);
+      Ember.Logger.warn(record);
+    }
+    return path;
+  },
+  _getRelatedModel(property) {
+    // ensure param is underscored
+    property = dasherize(property);
+    // destructure property
+    property = property.split('.')[0];
+    return property;
+  },
+  _getRelatedAttributePath(property) {
+    // ensure param is underscored
+    property = dasherize(property);
+    // destructure property
+    property = property.split('.')[1];
+    // define full path
+    const path = `attributes.${property}`;
+
+    return path;
+  },
+  _findIncludedModelById(array, model, id) {
+    return array.find(function(item) {
+      return (get(item, 'type') === pluralize(model) && get(item, 'id') === id);
+    })
+  },
+  _findRecordPath(property, record) {
+    let path;
+    // ensure param is underscored
+    property = dasherize(property);
+    // destructure property
+    const [a, b] = property.split('.');
+    // work out if this is a related property or not
+    // and return the key
+    if (!isEmpty(b)) {
+      path = `relationships.${a}.data.${b}`;
+    } else {
+      path = `attributes.${a}`;
+    }
+    // check if path is found
+    if (typeof get(record, path) === 'undefined') {
+      Ember.Logger.warn(`Mirage: Could not find path ${path}`);
+      Ember.Logger.warn(record);
+    }
+    // warn user else
+    return path;
+  },
 });
