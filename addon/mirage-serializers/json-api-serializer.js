@@ -12,16 +12,21 @@ import {
 } from '@ember/object';
 import {
   dasherize,
-
 } from '@ember/string';
 import {
   pluralize
 } from 'ember-inflector';
-
 import Ember from 'ember';
 
 
 export default JSONAPISerializer.extend({
+  /**
+   * Define an array of fields in the model to fuzzy search
+   *
+   * @type {Array}
+   */
+  searchByFields: A([]),
+
   extractFilterParams(params) {
     let filters = [];
     for (var key in params) {
@@ -84,18 +89,34 @@ export default JSONAPISerializer.extend({
     })
     return data;
   },
-  filterBySearch(record, value) {
-    // Check param name is a search param
-    let name = get(record, 'attributes.name');
+  /**
+   * Check if the model passes search filter
+   *
+   * @access protected
+   * @param {object}    record Serialised model instance to search
+   * @param {string}    term The search term
+   * @return {boolean}
+   */
+  filterBySearch(record, term) {
 
-    if (isEmpty(name)) {
-      name = `${get(record, 'attributes.first-name')} ${get(record, 'attributes.last-name')}`;
-    }
+    const searchFields = get(this, 'searchByFields');
 
-    if (name.search(value) === -1 ? false : true) {
+    if (isEmpty(searchFields)) {
+      // no search fields - return record
       return true;
     }
-    return false;
+
+    let matched = false;
+
+    searchFields.forEach((field) => {
+      const fieldValue = get(record, `attributes.${field}`);
+
+      if (!isEmpty(fieldValue) && fieldValue.search(term) !== -1) {
+        matched = true;
+      }
+    });
+
+    return matched;
   },
   sortResponse(json, sort) {
     // JSON API Sort logic
