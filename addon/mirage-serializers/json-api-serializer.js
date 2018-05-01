@@ -175,7 +175,7 @@ export default JSONAPISerializer.extend({
     let matched = false;
 
     searchFields.forEach((field) => {
-      const fieldValue = get(record, `attributes.${field}`);
+      const fieldValue = get(record, `attributes.${dasherize(field)}`);
 
       if (!isEmpty(fieldValue) && fieldValue.search(term) !== -1) {
         matched = true;
