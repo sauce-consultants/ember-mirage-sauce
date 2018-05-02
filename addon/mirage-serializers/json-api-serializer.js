@@ -71,6 +71,19 @@ export default JSONAPISerializer.extend({
   filterKey: 'filter',
 
   /**
+    Define a hook to do your own filtering on a
+    request before it is paginated. This closure
+    function is passed the json and request objects
+    and should return the json object
+    _Default: null
+
+    @property filterHook
+    @default null
+    @type {function}
+   */
+  filterHook: null,
+
+  /**
     Override the parent serializer to add support for search,
     filter, sort & pagination
 
@@ -94,6 +107,11 @@ export default JSONAPISerializer.extend({
       json.data = this.filterResponse(json.data, filters);
       // Sort data
       json.data = this.sortResponse(json, get(request.queryParams, get(this, 'sortKey')));
+      // Any Hooks?
+      const hook = get(this, 'filterHook');
+      if (hook) {
+        json = hook(json, request);
+      }
       // Paginate?
       if (request.queryParams['page[number]'] && request.queryParams['page[size]']) {
         const page = parseInt(request.queryParams['page[number]']);
