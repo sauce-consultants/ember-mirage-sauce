@@ -71,6 +71,17 @@ export default JSONAPISerializer.extend({
   filterKey: 'filter',
 
   /**
+    Define any filter keys to ignore in mirage
+    queries
+    _Default: []
+
+    @property ignoreFilters
+    @default "[]"
+    @type {array}
+   */
+  ignoreFilters: A([]),
+
+  /**
     Define a hook to do your own filtering on a
     request before it is paginated. This closure
     function is passed the json and request objects
@@ -124,6 +135,7 @@ export default JSONAPISerializer.extend({
     //
     return json;
   },
+
   /**
     Filter responses by filter params
 
@@ -140,6 +152,10 @@ export default JSONAPISerializer.extend({
   filterResponse(data, filters) {
 
     filters.forEach((filter) => {
+      if (get(this, 'ignoreFilters').indexOf(filter.property) !== -1) {
+        Ember.Logger.log(`ignore ${filter.property}`);
+        return;
+      }
       data = data.filter((record) => {
         let match = false;
         filter.property = dasherize(filter.property);
@@ -172,6 +188,7 @@ export default JSONAPISerializer.extend({
     })
     return data;
   },
+
   /**
     Check if the model passes search filter
 
