@@ -181,6 +181,19 @@ export default JSONAPISerializer.extend({
             if (value === get(record, path)) {
               match = true;
             }
+          } else if (filter.property.endsWith('-ids')) {
+            // Has Many Relationship
+            let relationship = filter.property.replace('-ids', ''),
+              path = `relationships.${pluralize(relationship)}.data`;
+
+            // Loop though relationships for a match
+            get(record, path).forEach(
+              (related) => {
+                if (value === get(related, 'id')) {
+                  match = true;
+                }
+              }
+            );
           }
         })
         return match;
