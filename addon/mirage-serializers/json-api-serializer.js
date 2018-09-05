@@ -296,7 +296,7 @@ export default JSONAPISerializer.extend({
         page,
         size,
         total: results.length,
-        pages: Math.floor(results.length / size)
+        pages: Math.ceil(results.length / size)
       }
     };
 
@@ -318,7 +318,7 @@ export default JSONAPISerializer.extend({
     @return {Array}
    */
   _extractFilterParams(params) {
-    let filters = [];
+    let filters = A([]);
     for (var key in params) {
       // loop though params and match any that follow the
       // filter[foo] pattern. Then extract foo.
