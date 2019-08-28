@@ -114,29 +114,35 @@ export default JSONAPISerializer.extend({
 
     // Is this a list response
     if (Array.isArray(json.data)) {
-      // Get filter params from request
-      let filters = this._extractFilterParams(request.queryParams);
-      this.log(json.data.length);
-      // Filter data
-      json.data = this.filterResponse(json, filters);
-      this.log(json.data.length);
-      // Sort data
-      json.data = this.sortResponse(json, get(request.queryParams, get(this, 'sortKey')));
-      // Any Hooks?
-      const hook = get(this, 'filterHook');
-      if (hook) {
-        json = hook(json, request);
-      }
-      // Paginate?
-      if (request.queryParams['page[number]'] && request.queryParams['page[size]']) {
-        const page = parseInt(request.queryParams['page[number]']);
-        const size = parseInt(request.queryParams['page[size]']);
-
-        json = this.paginate(json, page, size);
-      }
+      return this._serialize(json, request);
     }
 
     //
+    return json;
+  },
+
+  _serialize(json, request) {
+    // Get filter params from request
+    let filters = this._extractFilterParams(request.queryParams);
+    this.log(json.data.length);
+    // Filter data
+    json.data = this.filterResponse(json, filters);
+    this.log(json.data.length);
+    // Sort data
+    json.data = this.sortResponse(json, get(request.queryParams, get(this, 'sortKey')));
+    // Any Hooks?
+    const hook = get(this, 'filterHook');
+    if (hook) {
+      json = hook(json, request);
+    }
+    // Paginate?
+    if (request.queryParams['page[number]'] && request.queryParams['page[size]']) {
+      const page = parseInt(request.queryParams['page[number]']);
+      const size = parseInt(request.queryParams['page[size]']);
+
+      json = this.paginate(json, page, size);
+    }
+
     return json;
   },
 
