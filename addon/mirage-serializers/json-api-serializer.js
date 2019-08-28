@@ -17,6 +17,8 @@ import {
   pluralize
 } from 'ember-inflector';
 import Ember from 'ember';
+import findNestedRelationship from 'ember-mirage-sauce/utils/find-nested-relationship';
+const DEBUG = true;
 
 /**
   A custom JSONAPISerializer that adds sorting, filtering, search &
@@ -114,8 +116,10 @@ export default JSONAPISerializer.extend({
     if (Array.isArray(json.data)) {
       // Get filter params from request
       let filters = this._extractFilterParams(request.queryParams);
+      this.log(json.data.length);
       // Filter data
-      json.data = this.filterResponse(json.data, filters);
+      json.data = this.filterResponse(json, filters);
+      this.log(json.data.length);
       // Sort data
       json.data = this.sortResponse(json, get(request.queryParams, get(this, 'sortKey')));
       // Any Hooks?
@@ -149,11 +153,14 @@ export default JSONAPISerializer.extend({
     @param {Array} filters
     @return {Array}
    */
-  filterResponse(data, filters) {
-
+  filterResponse(json, filters) {
+    this.log(">- Filter Response -<");
+    this.log(json);
+    this.log(filters);
+    let data = json.data
     filters.forEach((filter) => {
       if (get(this, 'ignoreFilters').indexOf(filter.property) !== -1) {
-        Ember.Logger.log(`ignore ${filter.property}`);
+        this.log(`ignoring ${filter.property} filter`);
         return;
       }
       data = data.filter((record) => {
@@ -170,21 +177,29 @@ export default JSONAPISerializer.extend({
           // Check for an attribute match
           if (filter.property === get(this, 'searchKey') && value) {
             if (this.filterBySearch(record, value)) {
+              this.log(`filter by search key ${filter.property}`);
               match = true;
             }
           } else if (value === attribute) {
+            this.log(`filter by attribute ${filter.property}`);
             match = true;
           } else if (filter.property.endsWith('-id')) {
             let relationship = filter.property.replace('-id', ''),
               path = `relationships.${relationship}.data.id`;
+
+            this.log(`filter by belongsTo, ${filter.property} : ${path}`);
             // Check for a relationship match
             if (value === get(record, path)) {
               match = true;
+            } else {
+              this.log(`!- relationship ${relationship} not found`);
             }
           } else if (filter.property.endsWith('-ids')) {
             // Has Many Relationship
             let relationship = filter.property.replace('-ids', ''),
               path = `relationships.${pluralize(relationship)}.data`;
+
+            this.log(`filter by hasMany, ${filter.property} : ${path}`);
 
             // Loop though relationships for a match
             get(record, path).forEach(
@@ -194,6 +209,28 @@ export default JSONAPISerializer.extend({
                 }
               }
             );
+          } else if (filter.property.includes('.')) {
+
+            let segments = filter.property.split('.'),
+              // last item will be the property
+              relationshipProperty = segments[segments.length - 1];
+            // check this path exists in the includes property of our response data
+
+            if (relationshipProperty !== "id") {
+              relationshipProperty = `attributes.${relationshipProperty}`;
+            }
+
+            // find the nested relationship from the included array
+            let relationship = findNestedRelationship(record, json.included, filter.property);
+
+            if (relationship) {
+
+              if (get(relationship, relationshipProperty) === value) {
+                match = true;
+              }
+            }
+          } else {
+            this.log(`did not know how to handle ${filter.property} filter`);
           }
         })
         return match;
@@ -201,7 +238,6 @@ export default JSONAPISerializer.extend({
     })
     return data;
   },
-
   /**
     Check if the model passes search filter
 
@@ -444,4 +480,9 @@ export default JSONAPISerializer.extend({
     // warn user else
     return path;
   },
+  log(...args) {
+    if (DEBUG) {
+      window.console.log(...args);
+    }
+  }
 });
