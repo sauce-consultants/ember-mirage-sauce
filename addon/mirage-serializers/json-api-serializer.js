@@ -18,7 +18,7 @@ import {
 } from 'ember-inflector';
 import Ember from 'ember';
 import findNestedRelationship from 'ember-mirage-sauce/utils/find-nested-relationship';
-const DEBUG = false;
+const DEBUG = true;
 
 /**
   A custom JSONAPISerializer that adds sorting, filtering, search &
@@ -123,8 +123,11 @@ export default JSONAPISerializer.extend({
 
   _serialize(json, request) {
     // Get filter params from request
+    this.log("json", json);
+    this.log("filters", request);
     let filters = this._extractFilterParams(request.queryParams);
     this.log(json.data.length);
+    this.log(request.queryParams);
     // Filter data
     json.data = this.filterResponse(json, filters);
     this.log(json.data.length);
@@ -161,10 +164,9 @@ export default JSONAPISerializer.extend({
    */
   filterResponse(json, filters) {
     this.log(">- Filter Response -<");
-    this.log(json);
-    this.log(filters);
     let data = json.data
     filters.forEach((filter) => {
+      this.log("filter", filter);
       if (get(this, 'ignoreFilters').indexOf(filter.property) !== -1) {
         this.log(`ignoring ${filter.property} filter`);
         return;
@@ -360,11 +362,13 @@ export default JSONAPISerializer.extend({
     @return {Array}
    */
   _extractFilterParams(params) {
-    let filters = [];
+    this.log('> extractFilterParams', params);
+    let filters = A([]);
     for (var key in params) {
       // loop though params and match any that follow the
       // filter[foo] pattern. Then extract foo.
       if (key.substr(0, 6) === get(this, 'filterKey')) {
+
         let property = key.substr(7, (key.length - 8)),
           value = params[key],
           values = null;
@@ -372,6 +376,8 @@ export default JSONAPISerializer.extend({
         if (value) {
           values = params[key].split(',');
         }
+
+        // this.log("found filter key", property, values, filters);
 
         if (!isEmpty(values)) {
           filters.pushObject({
