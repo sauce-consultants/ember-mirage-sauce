@@ -122,15 +122,14 @@ export default JSONAPISerializer.extend({
   },
 
   _serialize(json, request) {
+    this.log("===========");
+    this.log("= Serialize");
     // Get filter params from request
-    this.log("json", json);
-    this.log("filters", request);
+    this.log("> json", json);
     let filters = this._extractFilterParams(request.queryParams);
-    this.log(json.data.length);
-    this.log(request.queryParams);
+    this.log("> filters", request.queryParams);
     // Filter data
     json.data = this.filterResponse(json, filters);
-    this.log(json.data.length);
     // Sort data
     json.data = this.sortResponse(json, get(request.queryParams, get(this, 'sortKey')));
     // Any Hooks?
@@ -163,7 +162,7 @@ export default JSONAPISerializer.extend({
     @return {Array}
    */
   filterResponse(json, filters) {
-    this.log(">- Filter Response -<");
+    this.log("= Filter Response");
     let data = json.data
     filters.forEach((filter) => {
       this.log("filter", filter);
@@ -185,17 +184,17 @@ export default JSONAPISerializer.extend({
           // Check for an attribute match
           if (filter.property === get(this, 'searchKey') && value) {
             if (this.filterBySearch(record, value)) {
-              this.log(`filter by search key ${filter.property}`);
+              this.log(`> Filter by search key ${filter.property}`);
               match = true;
             }
           } else if (value === attribute) {
-            this.log(`filter by attribute ${filter.property}`);
+            this.log(`> Filter by attribute ${filter.property}`);
             match = true;
           } else if (filter.property.endsWith('-id')) {
             let relationship = filter.property.replace('-id', ''),
               path = `relationships.${relationship}.data.id`;
 
-            this.log(`filter by belongsTo, ${filter.property} : ${path}`);
+            this.log(`> Filter by belongsTo, ${filter.property} : ${path}`);
             // Check for a relationship match
             if (value === get(record, path)) {
               match = true;
@@ -207,7 +206,7 @@ export default JSONAPISerializer.extend({
             let relationship = filter.property.replace('-ids', ''),
               path = `relationships.${pluralize(relationship)}.data`;
 
-            this.log(`filter by hasMany, ${filter.property} : ${path}`);
+            this.log(`> Filter by hasMany, ${filter.property} : ${path}`);
 
             // Loop though relationships for a match
             get(record, path).forEach(
@@ -237,9 +236,10 @@ export default JSONAPISerializer.extend({
                 match = true;
               }
             }
-          } else {
-            this.log(`did not know how to handle ${filter.property} filter`);
           }
+          /*else {
+                     this.log(`did not know how to handle ${filter.property} filter`);
+                   }*/
         })
         return match;
       });
@@ -362,7 +362,7 @@ export default JSONAPISerializer.extend({
     @return {Array}
    */
   _extractFilterParams(params) {
-    this.log('> extractFilterParams', params);
+    // this.log('= Extract Filter Params', params);
     let filters = A([]);
     for (var key in params) {
       // loop though params and match any that follow the
@@ -376,9 +376,6 @@ export default JSONAPISerializer.extend({
         if (value) {
           values = params[key].split(',');
         }
-
-        // this.log("found filter key", property, values, filters);
-
         if (!isEmpty(values)) {
           filters.pushObject({
             property,
