@@ -4,9 +4,6 @@ import {
   test
 } from 'qunit';
 import {
-  get
-} from '@ember/object';
-import {
   pluralize
 } from 'ember-inflector';
 
@@ -38,8 +35,8 @@ test('it paginates the response', function(assert) {
       }
     },
     result = serializer._serialize(json, request);
-  assert.equal(get(result, 'data.length'), 5);
-  // assert.equal(get(result, 'id'), 1);
+
+  assert.equal(result.data.length, 5);
 });
 
 test('it searches the response', function(assert) {
@@ -89,9 +86,9 @@ test('it searches the response', function(assert) {
     },
     result = serializer._serialize(json, request);
 
-  assert.equal(get(result, 'data.length'), 3);
+  assert.equal(result.data.length, 3);
 
-  let items = get(result, 'data');
+  let items = result.data;
   assert.equal(items[0].id, 2);
   assert.equal(items[1].id, 3);
   assert.equal(items[2].id, 5);
@@ -152,9 +149,9 @@ test('it filters by a property on the response', function(assert) {
     },
     result = serializer._serialize(json, request);
 
-  assert.equal(get(result, 'data.length'), 2);
+  assert.equal(result.data.length, 2);
 
-  let items = get(result, 'data');
+  let items = result.data;
   assert.equal(items[0].id, 3);
   assert.equal(items[1].id, 6);
 });
@@ -218,9 +215,9 @@ test('it searches and filters by a property on the response', function(assert) {
     },
     result = serializer._serialize(json, request);
 
-  assert.equal(get(result, 'data.length'), 1);
+  assert.equal(result.data.length, 1);
 
-  let items = get(result, 'data');
+  let items = result.data;
   assert.equal(items[0].id, 3);
 });
 
@@ -250,9 +247,9 @@ test('it sorts response by property', function(assert) {
     },
     result = serializer._serialize(json, request);
 
-  assert.equal(get(result, 'data.length'), 4);
+  assert.equal(result.data.length, 4);
 
-  let items = get(result, 'data');
+  let items = result.data;
 
   assert.equal(items[0].id, 4);
   assert.equal(items[1].id, 2);
@@ -287,9 +284,9 @@ test('it sorts response by property decending', function(assert) {
     },
     result = serializer._serialize(json, request);
 
-  assert.equal(get(result, 'data.length'), 4);
+  assert.equal(result.data.length, 4);
 
-  let items = get(result, 'data');
+  let items = result.data;
 
   assert.equal(items[0].id, 3);
   assert.equal(items[1].id, 1);

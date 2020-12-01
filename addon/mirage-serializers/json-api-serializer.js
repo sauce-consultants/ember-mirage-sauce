@@ -18,7 +18,7 @@ import {
 } from 'ember-inflector';
 import Ember from 'ember';
 import findNestedRelationship from 'ember-mirage-sauce/utils/find-nested-relationship';
-const DEBUG = true;
+const DEBUG = false;
 
 /**
   A custom JSONAPISerializer that adds sorting, filtering, search &
@@ -131,9 +131,9 @@ export default JSONAPISerializer.extend({
     // Filter data
     json.data = this.filterResponse(json, filters);
     // Sort data
-    json.data = this.sortResponse(json, get(request.queryParams, get(this, 'sortKey')));
+    json.data = this.sortResponse(json, get(request.queryParams, this.sortKey));
     // Any Hooks?
-    const hook = get(this, 'filterHook');
+    const hook = this.filterHook;
     if (hook) {
       json = hook(json, request);
     }
@@ -166,7 +166,7 @@ export default JSONAPISerializer.extend({
     let data = json.data
     filters.forEach((filter) => {
       this.log("filter", filter);
-      if (get(this, 'ignoreFilters').indexOf(filter.property) !== -1) {
+      if (this.ignoreFilters.indexOf(filter.property) !== -1) {
         this.log(`ignoring ${filter.property} filter`);
         return;
       }
@@ -182,7 +182,7 @@ export default JSONAPISerializer.extend({
           }
 
           // Check for an attribute match
-          if (filter.property === get(this, 'searchKey') && value) {
+          if (filter.property === this.searchKey && value) {
             if (this.filterBySearch(record, value)) {
               this.log(`> Filter by search key ${filter.property}`);
               match = true;
@@ -211,7 +211,7 @@ export default JSONAPISerializer.extend({
             // Loop though relationships for a match
             get(record, path).forEach(
               (related) => {
-                if (value === get(related, 'id')) {
+                if (value === related.id) {
                   match = true;
                 }
               }
@@ -257,7 +257,7 @@ export default JSONAPISerializer.extend({
    */
   filterBySearch(record, term) {
 
-    const searchFields = get(this, 'searchByFields');
+    const searchFields = this.searchByFields;
 
     if (isEmpty(searchFields)) {
       // no search fields - return record
@@ -312,7 +312,7 @@ export default JSONAPISerializer.extend({
       }
       // reverse sort order?
       if (desc) {
-        data = data.reverseObjects();
+        data = A(data).reverseObjects();
       }
     }
     return data;
@@ -367,7 +367,7 @@ export default JSONAPISerializer.extend({
     for (var key in params) {
       // loop though params and match any that follow the
       // filter[foo] pattern. Then extract foo.
-      if (key.substr(0, 6) === get(this, 'filterKey')) {
+      if (key.substr(0, 6) === this.filterKey) {
 
         let property = key.substr(7, (key.length - 8)),
           value = params[key],
@@ -465,7 +465,7 @@ export default JSONAPISerializer.extend({
   },
   _findIncludedModelById(array, model, id) {
     return array.find(function(item) {
-      return (get(item, 'type') === pluralize(model) && get(item, 'id') === id);
+      return (item.type === pluralize(model) && item.id === id);
     })
   },
   _findRecordPath(property, record) {
