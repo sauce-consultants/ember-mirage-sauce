@@ -1,6 +1,6 @@
 {
   "name": "ember-mirage-sauce",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Mirage Sauce adds some common functionality to mirage based json apis.",
   "keywords": [
     "ember-addon",
