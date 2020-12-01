@@ -1,4 +1,5 @@
-# ember-mirage-sauce
+ember-mirage-sauce
+==============================================================================
 
 Mirage Sauce adds some common functionality to mirage based json apis:
 
@@ -7,7 +8,9 @@ Mirage Sauce adds some common functionality to mirage based json apis:
 -   Sortable
 -   Paginate
 
-## Installation
+
+Installation
+------------------------------------------------------------------------------
 
 -   `ember install ember-mirage-sauce`
 
@@ -124,19 +127,21 @@ Define a hook to do your own filtering on a request before it is paginated. This
       }
     })
 
-## Running
+* Ember.js v3.16 or above
+* Ember CLI v2.13 or above
+* Node.js v10 or above
 
 -   `ember serve`
 -   Visit your app at <http://localhost:4200>.
 
-## Running Tests
 
--   `npm test` (Runs `ember try:each` to test your addon against multiple Ember versions)
--   `ember test`
--   `ember test --server`
+Contributing
+------------------------------------------------------------------------------
 
-## Building
+See the [Contributing](CONTRIBUTING.md) guide for details.
 
--   `ember build`
 
-For more information on using ember-cli, visit <https://ember-cli.com/>.
+License
+------------------------------------------------------------------------------
+
+This project is licensed under the [MIT License](LICENSE.md).
