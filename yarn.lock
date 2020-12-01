@@ -3919,8 +3919,9 @@ esdoc-ecmascript-proposal-plugin@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/esdoc-ecmascript-proposal-plugin/-/esdoc-ecmascript-proposal-plugin-1.0.0.tgz#390dc5656ba8a2830e39dba3570d79138df2ffd9"
 
-"esdoc@github:pzuraq/esdoc#015a342":
+esdoc@pzuraq/esdoc#015a342:
   version "1.0.4"
+  uid "015a3426b2e53b2b0270a9c00133780db3f1d144"
   resolved "https://codeload.github.com/pzuraq/esdoc/tar.gz/015a3426b2e53b2b0270a9c00133780db3f1d144"
   dependencies:
     babel-generator "6.26.0"
@@ -4070,7 +4071,7 @@ event-emitter@~0.3.5:
 
 event-stream@~3.3.0:
   version "3.3.4"
-  resolved "http://registry.npmjs.org/event-stream/-/event-stream-3.3.4.tgz#4ab4c9a0f5a54db9338b4c34d86bfce8f4b35571"
+  resolved "https://registry.npmjs.org/event-stream/-/event-stream-3.3.4.tgz#4ab4c9a0f5a54db9338b4c34d86bfce8f4b35571"
   dependencies:
     duplexer "~0.1.1"
     from "~0"
@@ -6336,8 +6337,8 @@ lodash.merge@^4.3.0, lodash.merge@^4.4.0, lodash.merge@^4.6.0:
   resolved "https://registry.yarnpkg.com/lodash.merge/-/lodash.merge-4.6.1.tgz#adc25d9cb99b9391c59624f379fbba60d7111d54"
 
 lodash.mergewith@^4.6.0:
-  version "4.6.1"
-  resolved "https://registry.yarnpkg.com/lodash.mergewith/-/lodash.mergewith-4.6.1.tgz#639057e726c3afbdb3e7d42741caa8d6e4335927"
+  version "4.6.2"
+  resolved "https://registry.yarnpkg.com/lodash.mergewith/-/lodash.mergewith-4.6.2.tgz#617121f89ac55f59047c7aec1ccd6654c6590f55"
 
 lodash.noop@~2.3.0:
   version "2.3.0"
