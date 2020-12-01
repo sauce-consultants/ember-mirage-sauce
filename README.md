@@ -55,6 +55,10 @@ You can pass multiple filters
 
 `/api/v1/posts?filter[published]=true&filter[authorId]=3&include=author`
 
+Filter by nested relationships ids or properties
+
+`/api/v1/posts?filter[author.dog.id]=3`
+
 ### Searching
 
 Pass a filter[search] params to search the responses. Right now this will only search attributes named 'name', 'first-name' & 'last-name'.

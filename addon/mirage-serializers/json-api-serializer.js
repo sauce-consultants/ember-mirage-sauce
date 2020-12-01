@@ -17,6 +17,8 @@ import {
   pluralize
 } from 'ember-inflector';
 import Ember from 'ember';
+import findNestedRelationship from 'ember-mirage-sauce/utils/find-nested-relationship';
+const DEBUG = true;
 
 /**
   A custom JSONAPISerializer that adds sorting, filtering, search &
@@ -112,27 +114,37 @@ export default JSONAPISerializer.extend({
 
     // Is this a list response
     if (Array.isArray(json.data)) {
-      // Get filter params from request
-      let filters = this._extractFilterParams(request.queryParams);
-      // Filter data
-      json.data = this.filterResponse(json.data, filters);
-      // Sort data
-      json.data = this.sortResponse(json, get(request.queryParams, get(this, 'sortKey')));
-      // Any Hooks?
-      const hook = get(this, 'filterHook');
-      if (hook) {
-        json = hook(json, request);
-      }
-      // Paginate?
-      if (request.queryParams['page[number]'] && request.queryParams['page[size]']) {
-        const page = parseInt(request.queryParams['page[number]']);
-        const size = parseInt(request.queryParams['page[size]']);
-
-        json = this.paginate(json, page, size);
-      }
+      return this._serialize(json, request);
     }
 
     //
+    return json;
+  },
+
+  _serialize(json, request) {
+    this.log("===========");
+    this.log("= Serialize");
+    // Get filter params from request
+    this.log("> json", json);
+    let filters = this._extractFilterParams(request.queryParams);
+    this.log("> filters", request.queryParams);
+    // Filter data
+    json.data = this.filterResponse(json, filters);
+    // Sort data
+    json.data = this.sortResponse(json, get(request.queryParams, get(this, 'sortKey')));
+    // Any Hooks?
+    const hook = get(this, 'filterHook');
+    if (hook) {
+      json = hook(json, request);
+    }
+    // Paginate?
+    if (request.queryParams['page[number]'] && request.queryParams['page[size]']) {
+      const page = parseInt(request.queryParams['page[number]']);
+      const size = parseInt(request.queryParams['page[size]']);
+
+      json = this.paginate(json, page, size);
+    }
+
     return json;
   },
 
@@ -149,11 +161,13 @@ export default JSONAPISerializer.extend({
     @param {Array} filters
     @return {Array}
    */
-  filterResponse(data, filters) {
-
+  filterResponse(json, filters) {
+    this.log("= Filter Response");
+    let data = json.data
     filters.forEach((filter) => {
+      this.log("filter", filter);
       if (get(this, 'ignoreFilters').indexOf(filter.property) !== -1) {
-        Ember.Logger.log(`ignore ${filter.property}`);
+        this.log(`ignoring ${filter.property} filter`);
         return;
       }
       data = data.filter((record) => {
@@ -170,21 +184,29 @@ export default JSONAPISerializer.extend({
           // Check for an attribute match
           if (filter.property === get(this, 'searchKey') && value) {
             if (this.filterBySearch(record, value)) {
+              this.log(`> Filter by search key ${filter.property}`);
               match = true;
             }
           } else if (value === attribute) {
+            this.log(`> Filter by attribute ${filter.property}`);
             match = true;
           } else if (filter.property.endsWith('-id')) {
             let relationship = filter.property.replace('-id', ''),
               path = `relationships.${relationship}.data.id`;
+
+            this.log(`> Filter by belongsTo, ${filter.property} : ${path}`);
             // Check for a relationship match
             if (value === get(record, path)) {
               match = true;
+            } else {
+              this.log(`!- relationship ${relationship} not found`);
             }
           } else if (filter.property.endsWith('-ids')) {
             // Has Many Relationship
             let relationship = filter.property.replace('-ids', ''),
               path = `relationships.${pluralize(relationship)}.data`;
+
+            this.log(`> Filter by hasMany, ${filter.property} : ${path}`);
 
             // Loop though relationships for a match
             get(record, path).forEach(
@@ -194,14 +216,36 @@ export default JSONAPISerializer.extend({
                 }
               }
             );
+          } else if (filter.property.includes('.')) {
+
+            let segments = filter.property.split('.'),
+              // last item will be the property
+              relationshipProperty = segments[segments.length - 1];
+            // check this path exists in the includes property of our response data
+
+            if (relationshipProperty !== "id") {
+              relationshipProperty = `attributes.${relationshipProperty}`;
+            }
+
+            // find the nested relationship from the included array
+            let relationship = findNestedRelationship(record, json.included, filter.property);
+
+            if (relationship) {
+
+              if (get(relationship, relationshipProperty) === value) {
+                match = true;
+              }
+            }
           }
+          /*else {
+                     this.log(`did not know how to handle ${filter.property} filter`);
+                   }*/
         })
         return match;
       });
     })
     return data;
   },
-
   /**
     Check if the model passes search filter
 
@@ -318,11 +362,13 @@ export default JSONAPISerializer.extend({
     @return {Array}
    */
   _extractFilterParams(params) {
+    // this.log('= Extract Filter Params', params);
     let filters = A([]);
     for (var key in params) {
       // loop though params and match any that follow the
       // filter[foo] pattern. Then extract foo.
       if (key.substr(0, 6) === get(this, 'filterKey')) {
+
         let property = key.substr(7, (key.length - 8)),
           value = params[key],
           values = null;
@@ -330,7 +376,6 @@ export default JSONAPISerializer.extend({
         if (value) {
           values = params[key].split(',');
         }
-
         if (!isEmpty(values)) {
           filters.pushObject({
             property,
@@ -444,4 +489,9 @@ export default JSONAPISerializer.extend({
     // warn user else
     return path;
   },
+  log(...args) {
+    if (DEBUG) {
+      window.console.log(...args);
+    }
+  }
 });
