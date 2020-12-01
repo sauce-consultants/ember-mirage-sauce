@@ -18,7 +18,9 @@ import {
 } from 'ember-inflector';
 import Ember from 'ember';
 import findNestedRelationship from 'ember-mirage-sauce/utils/find-nested-relationship';
-const DEBUG = false;
+import config from 'ember-get-config';
+
+const DEBUG = config['mirage-sauce'] ? config['mirage-sauce'].debug : false;
 
 /**
   A custom JSONAPISerializer that adds sorting, filtering, search &
