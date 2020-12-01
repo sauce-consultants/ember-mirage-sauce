@@ -269,7 +269,7 @@ export default JSONAPISerializer.extend({
     searchFields.forEach((field) => {
       const fieldValue = get(record, `attributes.${dasherize(field)}`);
 
-      if (!isEmpty(fieldValue) && fieldValue.search(term) !== -1) {
+      if (!isEmpty(fieldValue) && fieldValue.toLowerCase().search(term.toLowerCase()) !== -1) {
         matched = true;
       }
     });
@@ -340,7 +340,7 @@ export default JSONAPISerializer.extend({
         page,
         size,
         total: results.length,
-        pages: Math.floor(results.length / size)
+        pages: Math.ceil(results.length / size)
       }
     };
 
