@@ -1,9 +1,6 @@
 'use strict';
 
 module.exports = {
-  globals: {
-    server: true,
-  },
   root: true,
   parser: 'babel-eslint',
   parserOptions: {
@@ -31,17 +28,11 @@ module.exports = {
         '.eslintrc.js',
         '.template-lintrc.js',
         'ember-cli-build.js',
-        'index.js',
         'testem.js',
         'blueprints/*/index.js',
         'config/**/*.js',
-        'tests/dummy/config/**/*.js'
-      ],
-      excludedFiles: [
-        'addon/**',
-        'addon-test-support/**',
-        'app/**',
-        'tests/dummy/app/**'
+        'lib/*/index.js',
+        'server/**/*.js'
       ],
       parserOptions: {
         sourceType: 'script'
@@ -51,7 +42,12 @@ module.exports = {
         node: true
       },
       plugins: ['node'],
-      extends: ['plugin:node/recommended']
+      extends: ['plugin:node/recommended'],
+      rules: {
+        // this can be removed once the following is fixed
+        // https://github.com/mysticatea/eslint-plugin-node/issues/77
+        'node/no-unpublished-require': 'off'
+      }
     }
   ]
 };

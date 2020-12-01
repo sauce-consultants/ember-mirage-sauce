@@ -23,6 +23,4 @@ export default function() {
 
     http://www.ember-cli-mirage.com/docs/v0.3.x/shorthands/
   */
-  this.passthrough('/versions.json');
-  this.passthrough('/docs/ember-mirage-sauce.json');
 }
