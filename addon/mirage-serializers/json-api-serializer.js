@@ -20,6 +20,7 @@ import findNestedRelationship from 'ember-mirage-sauce/utils/find-nested-relatio
 import config from 'ember-get-config';
 
 const DEBUG = config['mirage-sauce'] ? config['mirage-sauce'].debug : false;
+const DEFAULT_SEARCH_FIELDS = ['email', 'name', 'firstName', 'lastName'];
 
 /**
   A custom JSONAPISerializer that adds sorting, filtering, search &
@@ -41,7 +42,7 @@ export default JSONAPISerializer.extend({
     @property searchByFields
     @type {Array}
    */
-  searchByFields: A([]),
+  searchByFields: DEFAULT_SEARCH_FIELDS,
 
   /**
     Query param name for the search parameter
@@ -197,6 +198,7 @@ export default JSONAPISerializer.extend({
             if (filter.property === this.searchKey && value) {
               if (logFirst) {
                 this.log(`1.${index}.2 Filter by search key: ${filter.property}="${value}"`);
+                this.log(`1.${index}.3 Search the followin attributes: ${this.searchByFields.join(', ')}`);
               }
               if (this.filterBySearch(record, value)) {
                 match = true;

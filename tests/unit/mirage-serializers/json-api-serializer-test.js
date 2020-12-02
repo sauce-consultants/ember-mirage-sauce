@@ -1090,6 +1090,39 @@ test('it handles an known filter', function(assert) {
 
 });
 
+test('it ignores a filter in the ignoreFilters array', function(assert) {
+  //
+  const serializer = new JsonApiSerializer();
+
+  serializer.ignoreFilters = ['color'];
+
+  let json = {
+      data: [
+        generateModel('post', 1, {
+          title: 'foo',
+          color: 'red'
+        }, {}),
+        generateModel('post', 2, {
+          title: 'foobar',
+          color: 'red'
+        }, {}),
+        generateModel('post', 3, {
+          title: 'foobar',
+          color: 'blue'
+        }, {}),
+      ]
+    },
+    request = {
+      queryParams: {
+        'filter[color]': 'red',
+      }
+    },
+    result = serializer._serialize(json, request);
+
+  assert.equal(result.data.length, 3);
+
+});
+
 test('it sorts response by property', function(assert) {
   const serializer = new JsonApiSerializer();
 
