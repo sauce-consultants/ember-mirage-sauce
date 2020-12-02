@@ -142,12 +142,7 @@ export default JSONAPISerializer.extend({
       json = hook(json, request);
     }
     // Paginate?
-    if (request.queryParams['page[number]'] && request.queryParams['page[size]']) {
-      const page = parseInt(request.queryParams['page[number]']);
-      const size = parseInt(request.queryParams['page[size]']);
-
-      json = this.paginate(json, page, size);
-    }
+    json = this.paginate(json, request);
 
     return json;
   },
@@ -265,6 +260,7 @@ export default JSONAPISerializer.extend({
     }
     return data;
   },
+
   /**
     Check if the model passes search filter
 
@@ -353,46 +349,64 @@ export default JSONAPISerializer.extend({
       }
     } else {
 
-      this.log("2. Sort the response: No sort set", sort);
+      this.log("2.  Sort the response: No sort defined");
     }
     return data;
   },
+
   /**
     Paginate response
 
     @access protected
     @method paginate
     @param {object} results data to be paginated
-    @param {number} page  current page
-    @param {number} size  current page size
+    @param {object} request request object
     @return {object}
    */
-  paginate(res, page, size) {
-    const slicedResults = (results) => {
-      const start = (page - 1) * size;
-      const end = start + size;
+  paginate(res, request) {
 
-      return results.slice(start, end);
-    };
+    if (request.queryParams['page[number]'] && request.queryParams['page[size]']) {
 
-    const buildMetadata = (results) => {
-      return {
-        page,
-        size,
-        total: results.length,
-        pages: Math.ceil(results.length / size)
-      }
-    };
+      const page = parseInt(request.queryParams['page[number]']),
+        size = parseInt(request.queryParams['page[size]']),
+        total = res ? res.data.length : 0,
+        pages = Math.ceil(total / size);
 
-    res.meta = buildMetadata(res.data);
-    res.data = slicedResults(res.data);
+      this.log(`3.  Pagination the response page "${page}" size "${size}"`);
 
-    return res;
+      res.data = this._sliceResults(res.data, page, size);
+      res.meta = this._buildMetadata(page, size, total, pages);
+
+      return res;
+    } else {
+      this.log(`3.  Pagination not set`);
+      return res;
+    }
   },
 
   // -------
   // PRIVATE
   // -------
+
+  _sliceResults(results, page, size) {
+    const start = (page - 1) * size;
+    const end = start + size;
+
+    this.log(`3.0 total results: ${results.length}`)
+    this.log(`3.1 slice results at index: ${start} - ${end}`)
+    return results.slice(start, end);
+  },
+
+  _buildMetadata(page, size, total, pages) {
+    this.log(`3.2 total pages: ${pages}`);
+
+    return {
+      page,
+      size,
+      total,
+      pages,
+    }
+  },
 
   /**
     Extract filter parameters from the request
@@ -426,6 +440,7 @@ export default JSONAPISerializer.extend({
     }
     return filters;
   },
+
   /**
     Sort models by a related property
 
