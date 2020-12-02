@@ -9,7 +9,6 @@ import {
 
 module('Unit | Mirage Serialize | json api serializer');
 
-// Finds a relationship one level deep
 test('it paginates the response', function(assert) {
 
   const serializer = new JsonApiSerializer();
@@ -37,6 +36,81 @@ test('it paginates the response', function(assert) {
     result = serializer._serialize(json, request);
 
   assert.equal(result.data.length, 5);
+
+  let items = result.data;
+
+  assert.equal(items[0].id, 1);
+  assert.equal(items[1].id, 2);
+  assert.equal(items[2].id, 3);
+  assert.equal(items[3].id, 4);
+  assert.equal(items[4].id, 5);
+});
+
+test('it paginates the response at the second page', function(assert) {
+
+  const serializer = new JsonApiSerializer();
+
+  let json = {
+      data: [
+        generateModel('user', 1, {}, {}),
+        generateModel('user', 2, {}, {}),
+        generateModel('user', 3, {}, {}),
+        generateModel('user', 4, {}, {}),
+        generateModel('user', 5, {}, {}),
+        generateModel('user', 6, {}, {}),
+        generateModel('user', 7, {}, {}),
+        generateModel('user', 8, {}, {}),
+        generateModel('user', 9, {}, {}),
+        generateModel('user', 10, {}, {}),
+      ]
+    },
+    request = {
+      queryParams: {
+        'page[number]': '2',
+        'page[size]': '5',
+      }
+    },
+    result = serializer._serialize(json, request);
+
+  assert.equal(result.data.length, 5);
+
+  let items = result.data;
+
+  assert.equal(items[0].id, 6);
+  assert.equal(items[1].id, 7);
+  assert.equal(items[2].id, 8);
+  assert.equal(items[3].id, 9);
+  assert.equal(items[4].id, 10);
+});
+
+test('it paginates the response at a page outside of the range', function(assert) {
+
+  const serializer = new JsonApiSerializer();
+
+  let json = {
+      data: [
+        generateModel('user', 1, {}, {}),
+        generateModel('user', 2, {}, {}),
+        generateModel('user', 3, {}, {}),
+        generateModel('user', 4, {}, {}),
+        generateModel('user', 5, {}, {}),
+        generateModel('user', 6, {}, {}),
+        generateModel('user', 7, {}, {}),
+        generateModel('user', 8, {}, {}),
+        generateModel('user', 9, {}, {}),
+        generateModel('user', 10, {}, {}),
+      ]
+    },
+    request = {
+      queryParams: {
+        'page[number]': '23',
+        'page[size]': '5',
+      }
+    },
+    result = serializer._serialize(json, request);
+
+  assert.equal(result.data.length, 0);
+
 });
 
 test('it searches the response', function(assert) {
@@ -54,7 +128,7 @@ test('it searches the response', function(assert) {
           'title': 'foobar'
         }, {}),
         generateModel('post', 3, {
-          'title': 'foobar'
+          'title': 'BARFOO'
         }, {}),
         generateModel('post', 4, {
           'title': 'foo'
@@ -63,7 +137,7 @@ test('it searches the response', function(assert) {
           'title': 'bar'
         }, {}),
         generateModel('post', 6, {
-          'title': 'foo'
+          'title': 'FOO'
         }, {}),
         generateModel('post', 7, {
           'title': 'foo'

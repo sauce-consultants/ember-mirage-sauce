@@ -168,24 +168,36 @@ export default JSONAPISerializer.extend({
 
       this.log("1.  Filter the response: filters", filters);
 
-
       filters.forEach((filter, index) => {
 
-        this.log(`1.${index} filter`, filter);
+        this.log(`1.${index}.0 filter`, filter);
 
         if (this.ignoreFilters.indexOf(filter.property) !== -1) {
-          this.log(`   ignoring ${filter.property} filter`);
+          this.log(`1.${index}.1 ignoring ${filter.property} filter`);
           return;
         }
+
+        const attributePath = `attributes.${filter.property}`;
+
+        let logFirst = true;
+
         data = data.filter((record) => {
 
           let match = false;
 
           filter.property = dasherize(filter.property);
 
+          if (logFirst) {
+            this.log(`1.${index}.1 Dasherize filter property: "${filter.property}"`);
+          }
+
           filter.values.forEach((value) => {
 
-            let attribute = get(record, `attributes.${filter.property}`);
+            if (logFirst) {
+              this.log(`1.${index}.2 Filter ${filter.property}="${value}"`);
+            }
+
+            let attribute = get(record, attributePath);
 
             // Convert bool to string
             if (typeof(attribute) === "boolean") {
@@ -193,32 +205,49 @@ export default JSONAPISerializer.extend({
             }
 
             // Check for an attribute match
+            // Is this a search term?
             if (filter.property === this.searchKey && value) {
+              if (logFirst) {
+                this.log(`1.${index}.3 Filter by search key: ${filter.property}="${value}"`);
+              }
               if (this.filterBySearch(record, value)) {
-                this.log(`   Filter by search key ${filter.property}`);
                 match = true;
               }
-            } else if (value === attribute) {
-              this.log(`   Filter by attribute ${filter.property}`);
-              match = true;
-            } else if (filter.property.endsWith('-id')) {
+            }
+            // Is this an attribute filter?
+            else if (this._isAttributeKey(filter.property, record)) {
+
+              if (logFirst) {
+                this.log(`1.${index}.3 Filter by attribute ${filter.property}`);
+              }
+
+              if (value === attribute) {
+                match = true;
+              }
+
+            }
+            // Is this a related belongs to id?
+            else if (filter.property.endsWith('-id')) {
               let relationship = filter.property.replace('-id', ''),
                 path = `relationships.${relationship}.data.id`;
-
-              this.log(`   Filter by belongsTo, ${filter.property} : ${path}`);
+              if (logFirst) {
+                this.log(`1.${index}.3 Filter by belongsTo relationship, ${filter.property} : ${path}`);
+              }
               // Check for a relationship match
               if (value === get(record, path)) {
                 match = true;
               } else {
                 this.log(`!- relationship ${relationship} not found`);
               }
-            } else if (filter.property.endsWith('-ids')) {
+            }
+            // Is this a related hasMany to id(s)?
+            else if (filter.property.endsWith('-ids')) {
               // Has Many Relationship
               let relationship = filter.property.replace('-ids', ''),
                 path = `relationships.${pluralize(relationship)}.data`;
-
-              this.log(`   Filter by hasMany, ${filter.property} : ${path}`);
-
+              if (logFirst) {
+                this.log(`1.${index}.3 Filter by hasMany, ${filter.property} : ${path}`);
+              }
               // Loop though relationships for a match
               get(record, path).forEach(
                 (related) => {
@@ -227,7 +256,9 @@ export default JSONAPISerializer.extend({
                   }
                 }
               );
-            } else if (filter.property.includes('.')) {
+            }
+            // Is this a related attribute?
+            else if (filter.property.includes('.')) {
 
               let segments = filter.property.split('.'),
                 // last item will be the property
@@ -247,11 +278,15 @@ export default JSONAPISerializer.extend({
                   match = true;
                 }
               }
+            } else {
+              if (logFirst) {
+                this.log(`1.${index}.3 Filter did not know how to handle "${filter.property}" ${record.id}`);
+              }
             }
-            /*else {
-                       this.log(`did not know how to handle ${filter.property} filter`);
-                     }*/
           })
+
+          logFirst = false;
+
           return match;
         });
       })
@@ -506,6 +541,9 @@ export default JSONAPISerializer.extend({
     return path.split('.').length === 1;
   },
 
+  _isAttributeKey(attribute, record) {
+    return Object.keys(record.attributes).includes(attribute);
+  },
   _isRelatedAttribute(path) {
     return path.split('.').length === 2;
   },
