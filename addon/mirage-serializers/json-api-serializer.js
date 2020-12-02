@@ -193,13 +193,6 @@ export default JSONAPISerializer.extend({
               this.log(`1.${index}.1 Filter ${filter.property}="${value}"`);
             }
 
-            let attribute = get(record, attributePath);
-
-            // Convert bool to string
-            if (typeof(attribute) === "boolean") {
-              attribute = attribute.toString();
-            }
-
             // Check for an attribute match
             // Is this a search term?
             if (filter.property === this.searchKey && value) {
@@ -213,6 +206,13 @@ export default JSONAPISerializer.extend({
             // Is this an attribute filter?
             else if (this._isAttributeKey(filter.property, record)) {
 
+              // Convert bool to string
+              if (typeof(attribute) === "boolean") {
+                attribute = attribute.toString();
+              }
+
+              let attribute = get(record, attributePath);
+
               if (logFirst) {
                 this.log(`1.${index}.2 Filter by attribute ${filter.property}`);
               }
@@ -220,7 +220,6 @@ export default JSONAPISerializer.extend({
               if (value === attribute) {
                 match = true;
               }
-
             }
             // Is this a related belongs to id?
             else if (filter.property.endsWith('-id')) {
@@ -284,12 +283,19 @@ export default JSONAPISerializer.extend({
               // find the nested relationship from the included array
               let relationship = findNestedRelationship(record, json.included, filter.property);
 
+              if (logFirst) {
+
+                this.log(`1.${index}.2 Filter by "${filter.property}" is a relationship attribute. Path: "${relationshipProperty}"`);
+
+              }
+
               if (relationship) {
 
                 if (get(relationship, relationshipProperty) === value) {
                   match = true;
                 }
               }
+
             } else {
               if (logFirst) {
                 this.log(`1.${index}.2 Filter did not know how to handle "${filter.property}" ${record.id}`);

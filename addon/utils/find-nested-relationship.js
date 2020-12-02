@@ -15,19 +15,24 @@ import {
  * @return {<object>}
  */
 export default function findNestedRelationship(record, relationships, path) {
+
   let pathSegments = path.split('.'),
     // property = pathSegments.pop(),
     firstRelationship = pathSegments.shift(),
     // first relationship will be in the data object
-    firstRelationshipId = get(record, `relationships.${firstRelationship}.data.id`);
+    firstRelationshipId = parseInt(get(record, `relationships.${firstRelationship}.data.id`));
 
   // access first relationships object from the includes array
   firstRelationship = relationships.find((relationship) => {
-    return get(relationship, 'id') === firstRelationshipId && get(relationship, 'type') === pluralize(firstRelationship);
+    return parseInt(relationship.id) === firstRelationshipId && relationship.type === pluralize(firstRelationship);
   });
 
   if (!firstRelationship) {
     return null;
+  }
+
+  if (pathSegments.length === 1) {
+    return firstRelationship;
   }
 
   let currentRelationship = firstRelationship,
@@ -44,7 +49,7 @@ export default function findNestedRelationship(record, relationships, path) {
     }
 
     currentRelationship = relationships.find((relationship) => {
-      return get(relationship, 'id') === nextRelationshipId && get(relationship, 'type') === pluralize(nextRelationshipModel);
+      return parseInt(relationship.id) === nextRelationshipId && relationship.type === pluralize(nextRelationshipModel);
     });
 
     lastRelationship = currentRelationship;
