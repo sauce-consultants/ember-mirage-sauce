@@ -187,14 +187,10 @@ export default JSONAPISerializer.extend({
 
           filter.property = dasherize(filter.property);
 
-          if (logFirst) {
-            this.log(`1.${index}.1 Dasherize filter property: "${filter.property}"`);
-          }
-
           filter.values.forEach((value) => {
 
             if (logFirst) {
-              this.log(`1.${index}.2 Filter ${filter.property}="${value}"`);
+              this.log(`1.${index}.1 Filter ${filter.property}="${value}"`);
             }
 
             let attribute = get(record, attributePath);
@@ -208,7 +204,7 @@ export default JSONAPISerializer.extend({
             // Is this a search term?
             if (filter.property === this.searchKey && value) {
               if (logFirst) {
-                this.log(`1.${index}.3 Filter by search key: ${filter.property}="${value}"`);
+                this.log(`1.${index}.2 Filter by search key: ${filter.property}="${value}"`);
               }
               if (this.filterBySearch(record, value)) {
                 match = true;
@@ -218,7 +214,7 @@ export default JSONAPISerializer.extend({
             else if (this._isAttributeKey(filter.property, record)) {
 
               if (logFirst) {
-                this.log(`1.${index}.3 Filter by attribute ${filter.property}`);
+                this.log(`1.${index}.2 Filter by attribute ${filter.property}`);
               }
 
               if (value === attribute) {
@@ -230,14 +226,21 @@ export default JSONAPISerializer.extend({
             else if (filter.property.endsWith('-id')) {
               let relationship = filter.property.replace('-id', ''),
                 path = `relationships.${relationship}.data.id`;
+
               if (logFirst) {
-                this.log(`1.${index}.3 Filter by belongsTo relationship, ${filter.property} : ${path}`);
+                this.log(`1.${index}.2 Filter by "${filter.property}" is a belongsTo relationship. Path: ${path}`);
               }
-              // Check for a relationship match
-              if (value === get(record, path)) {
-                match = true;
+
+              // check the related model is present in the response
+              if (this._hasIncludedRelationship(relationship, json.included)) {
+                // Check for a relationship match
+                if (parseInt(value) === parseInt(get(record, path))) {
+                  match = true;
+                }
               } else {
-                this.log(`!- relationship ${relationship} not found`);
+                if (logFirst) {
+                  this.log(`1.${index}.3 There were no "${relationship}" models found in the includes response! Did you include them in your request?`);
+                }
               }
             }
             // Is this a related hasMany to id(s)?
@@ -245,17 +248,26 @@ export default JSONAPISerializer.extend({
               // Has Many Relationship
               let relationship = filter.property.replace('-ids', ''),
                 path = `relationships.${pluralize(relationship)}.data`;
+
               if (logFirst) {
-                this.log(`1.${index}.3 Filter by hasMany, ${filter.property} : ${path}`);
+                this.log(`1.${index}.2 Filter by "${filter.property}" is a hasMany relationship. Path: ${path}`);
               }
-              // Loop though relationships for a match
-              get(record, path).forEach(
-                (related) => {
-                  if (value === related.id) {
-                    match = true;
+
+              // check the related model is present in the response
+              if (this._hasIncludedRelationship(relationship, json.included)) {
+                // Loop though relationships for a match
+                get(record, path).forEach(
+                  (related) => {
+                    if (parseInt(value) === parseInt(related.id)) {
+                      match = true;
+                    }
                   }
+                );
+              } else {
+                if (logFirst) {
+                  this.log(`1.${index}.3 There were no "${relationship}" models found in the includes response! Did you include them in your request?`);
                 }
-              );
+              }
             }
             // Is this a related attribute?
             else if (filter.property.includes('.')) {
@@ -280,7 +292,7 @@ export default JSONAPISerializer.extend({
               }
             } else {
               if (logFirst) {
-                this.log(`1.${index}.3 Filter did not know how to handle "${filter.property}" ${record.id}`);
+                this.log(`1.${index}.2 Filter did not know how to handle "${filter.property}" ${record.id}`);
               }
             }
           })
@@ -451,9 +463,10 @@ export default JSONAPISerializer.extend({
     @return {Array}
    */
   _extractFilterParams(params) {
-    // this.log('= Extract Filter Params', params);
+
     let filters = A([]);
     for (var key in params) {
+
       // loop though params and match any that follow the
       // filter[foo] pattern. Then extract foo.
       if (key.substr(0, 6) === this.filterKey) {
@@ -463,7 +476,9 @@ export default JSONAPISerializer.extend({
           values = null;
 
         if (value) {
-          values = params[key].split(',');
+          // make sure it's a string before we split it
+          values = (value + "").split(',');
+
         }
         if (!isEmpty(values)) {
           filters.pushObject({
@@ -544,6 +559,11 @@ export default JSONAPISerializer.extend({
   _isAttributeKey(attribute, record) {
     return Object.keys(record.attributes).includes(attribute);
   },
+
+  _hasIncludedRelationship(model, included) {
+    return A(included).filterBy('type', pluralize(model)).length > 0;
+  },
+
   _isRelatedAttribute(path) {
     return path.split('.').length === 2;
   },

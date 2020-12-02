@@ -295,6 +295,242 @@ test('it searches and filters by a property on the response', function(assert) {
   assert.equal(items[0].id, 3);
 });
 
+test('it filters by a belongsTo relationship', function(assert) {
+  //
+  const serializer = new JsonApiSerializer();
+
+  const author1 = {
+      data: {
+        id: 1,
+        type: 'author'
+      }
+    },
+    author2 = {
+      data: {
+        id: 2,
+        type: 'author'
+      }
+    },
+    author3 = {
+      data: {
+        id: 3,
+        type: 'author'
+      }
+    };
+
+  let json = {
+      data: [
+        generateModel('post', 1, {
+          title: 'foo',
+          color: 'red'
+        }, {
+          author: author1
+        }),
+        generateModel('post', 2, {
+          title: 'foobar',
+          color: 'red'
+        }, {
+          author: author1
+        }),
+        generateModel('post', 3, {
+          title: 'foobar',
+          color: 'blue'
+        }, {
+          author: author2
+        }),
+        generateModel('post', 4, {
+          title: 'foo',
+          color: 'blu'
+        }, {
+          author: author2
+        }),
+        generateModel('post', 5, {
+          title: 'bar',
+          color: 'red'
+        }, {
+          author: author1
+        }),
+        generateModel('post', 6, {
+          title: 'foo',
+          color: 'blue'
+        }, {
+          author: author1
+        }),
+        generateModel('post', 7, {
+          title: 'foo',
+          color: 'red'
+        }, {
+          author: author3
+        }),
+        generateModel('post', 8, {
+          title: 'foo',
+          color: 'red'
+        }, {
+          author: author2
+        }),
+        generateModel('post', 9, {
+          title: 'foo',
+          color: 'red'
+        }, {
+          author: author3
+        }),
+        generateModel('post', 10, {
+          title: 'foo',
+          color: 'blueblue'
+        }, {
+          author: author3
+        }),
+      ],
+      included: [
+        generateModel('author', 1, {
+          name: 'Frank',
+        }),
+        generateModel('author', 2, {
+          name: 'Frida',
+        }),
+        generateModel('author', 3, {
+          name: 'Fabian',
+        }),
+      ]
+    },
+    request = {
+      queryParams: {
+        'filter[authorId]': "2",
+      },
+    },
+    result = serializer._serialize(json, request);
+
+  assert.equal(result.data.length, 3);
+
+  let items = result.data;
+  assert.equal(items[0].id, 3);
+  assert.equal(items[1].id, 4);
+  assert.equal(items[2].id, 8);
+});
+
+test('it filters by a hasMany relationship', function(assert) {
+  //
+  const serializer = new JsonApiSerializer();
+
+  const tag1 = {
+      data: [{
+        id: 1,
+        type: 'tag'
+      }]
+    },
+    tag2 = {
+      data: [{
+        id: 2,
+        type: 'tag'
+      }]
+    },
+    tag3 = {
+      data: [{
+        id: 3,
+        type: 'tag'
+      }]
+    },
+    tag2and3 = {
+      data: [{
+        id: 3,
+        type: 'tag'
+      }, {
+        id: 2,
+        type: 'tag'
+      }]
+    };
+
+  let json = {
+      data: [
+        generateModel('post', 1, {
+          title: 'foo',
+          color: 'red'
+        }, {
+          tags: tag1
+        }),
+        generateModel('post', 2, {
+          title: 'foobar',
+          color: 'red'
+        }, {
+          tags: tag1
+        }),
+        generateModel('post', 3, {
+          title: 'foobar',
+          color: 'blue'
+        }, {
+          tags: tag1
+        }),
+        generateModel('post', 4, {
+          title: 'foo',
+          color: 'blu'
+        }, {
+          tags: tag2
+        }),
+        generateModel('post', 5, {
+          title: 'bar',
+          color: 'red'
+        }, {
+          tags: tag2
+        }),
+        generateModel('post', 6, {
+          title: 'foo',
+          color: 'blue'
+        }, {
+          tags: tag1
+        }),
+        generateModel('post', 7, {
+          title: 'foo',
+          color: 'red'
+        }, {
+          tags: tag3
+        }),
+        generateModel('post', 8, {
+          title: 'foo',
+          color: 'red'
+        }, {
+          tags: tag2
+        }),
+        generateModel('post', 9, {
+          title: 'foo',
+          color: 'red'
+        }, {
+          tags: tag2and3
+        }),
+        generateModel('post', 10, {
+          title: 'foo',
+          color: 'blueblue'
+        }, {
+          tags: tag3
+        }),
+      ],
+      included: [
+        generateModel('tag', 1, {
+          name: 'Movies',
+        }),
+        generateModel('tag', 2, {
+          name: 'Music',
+        }),
+        generateModel('tag', 3, {
+          name: 'Food',
+        }),
+      ]
+    },
+    request = {
+      queryParams: {
+        'filter[tagIds]': "2",
+      },
+    },
+    result = serializer._serialize(json, request);
+
+  assert.equal(result.data.length, 4);
+
+  let items = result.data;
+  assert.equal(items[0].id, 4);
+  assert.equal(items[1].id, 5);
+  assert.equal(items[2].id, 8);
+  assert.equal(items[3].id, 9);
+});
+
 test('it sorts response by property', function(assert) {
   const serializer = new JsonApiSerializer();
 
@@ -528,10 +764,17 @@ test('it sorts response by a relationship property decending', function(assert) 
 });
 
 function generateModel(type, id, attributes, relationships) {
+  if (relationships) {
+    return {
+      attributes,
+      id,
+      relationships,
+      type: pluralize(type),
+    };
+  }
   return {
     attributes,
     id,
-    relationships,
     type: pluralize(type),
   };
 }
