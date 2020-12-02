@@ -128,8 +128,8 @@ export default JSONAPISerializer.extend({
     this.log("MIRAGE SAUCE REQUEST");
     this.log("====================");
     // Get filter params from request
-    this.log("> payload data", json);
-    this.log("> request object", request);
+    this.log("> Payload data", json);
+    this.log("> Request object", request);
 
     let filters = this._extractFilterParams(request.queryParams);
     // Filter data

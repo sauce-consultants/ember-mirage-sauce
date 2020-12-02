@@ -24,6 +24,39 @@ Use in your mirage application serializer.
 
 ## Features
 
+### Debuggin
+
+The serialize function is a bit of a beast and it can be difficult to work out why you are not getting the response you expect sometimes.
+
+To help with this, extensive console logs have been added to the codebase that can be toggled by setting a config value in your application environment file
+
+```
+module.exports = function(environment) {
+  let ENV = {
+    // ...
+    'mirage-sauce': {
+      debug: true,
+    },
+    // ...
+```
+
+This will give you a pretty noisy (but hopefully useful) output like the following:
+
+```
+====================
+MIRAGE SAUCE REQUEST
+====================
+> payload data {data: Array(4)}
+> request object {queryParams: {…}}
+1.  Filter the response: No filters set
+2.  Sort the response -age
+2.0 Sort direction: descending
+2.1 Sort by attribute "age". Path:
+2.2 Sort by path "attributes.age"
+3.  Filter hook not set
+4.  Pagination not set
+```
+
 ### Sorting
 
 Passing a `sort` param to your api will automatically sort the returned response.
