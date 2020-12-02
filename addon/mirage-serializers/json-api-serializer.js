@@ -283,6 +283,7 @@ export default JSONAPISerializer.extend({
               // find the nested relationship from the included array
               let relationship = findNestedRelationship(record, json.included, filter.property);
 
+              console.log(relationship);
               if (logFirst) {
 
                 this.log(`1.${index}.2 Filter by "${filter.property}" is a relationship attribute. Path: "${relationshipProperty}"`);
@@ -291,7 +292,7 @@ export default JSONAPISerializer.extend({
 
               if (relationship) {
 
-                if (get(relationship, relationshipProperty) === value) {
+                if (get(relationship, relationshipProperty) == value) {
                   match = true;
                 }
               }

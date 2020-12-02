@@ -473,6 +473,119 @@ test('it filters by belongsTo relationship', function(assert) {
   assert.equal(items[2].id, 8);
 });
 
+test('it filters by belongsTo relationship via .id syntax', function(assert) {
+  //
+  const serializer = new JsonApiSerializer();
+
+  const author1 = {
+      data: {
+        id: 1,
+        type: 'author'
+      }
+    },
+    author2 = {
+      data: {
+        id: 2,
+        type: 'author'
+      }
+    },
+    author3 = {
+      data: {
+        id: 3,
+        type: 'author'
+      }
+    };
+
+  let json = {
+      data: [
+        generateModel('post', 1, {
+          title: 'foo',
+          color: 'red'
+        }, {
+          author: author1
+        }),
+        generateModel('post', 2, {
+          title: 'foobar',
+          color: 'red'
+        }, {
+          author: author1
+        }),
+        generateModel('post', 3, {
+          title: 'foobar',
+          color: 'blue'
+        }, {
+          author: author2
+        }),
+        generateModel('post', 4, {
+          title: 'foo',
+          color: 'blu'
+        }, {
+          author: author2
+        }),
+        generateModel('post', 5, {
+          title: 'bar',
+          color: 'red'
+        }, {
+          author: author1
+        }),
+        generateModel('post', 6, {
+          title: 'foo',
+          color: 'blue'
+        }, {
+          author: author1
+        }),
+        generateModel('post', 7, {
+          title: 'foo',
+          color: 'red'
+        }, {
+          author: author3
+        }),
+        generateModel('post', 8, {
+          title: 'foo',
+          color: 'red'
+        }, {
+          author: author2
+        }),
+        generateModel('post', 9, {
+          title: 'foo',
+          color: 'red'
+        }, {
+          author: author3
+        }),
+        generateModel('post', 10, {
+          title: 'foo',
+          color: 'blueblue'
+        }, {
+          author: author3
+        }),
+      ],
+      included: [
+        generateModel('author', 1, {
+          name: 'Frank',
+        }),
+        generateModel('author', 2, {
+          name: 'Frida',
+        }),
+        generateModel('author', 3, {
+          name: 'Fabian',
+        }),
+      ]
+    },
+    request = {
+      queryParams: {
+        'filter[author.id]': "2",
+      },
+    },
+    result = serializer._serialize(json, request);
+
+  assert.equal(result.data.length, 3);
+
+  let items = result.data;
+  assert.equal(items[0].id, 3);
+  assert.equal(items[1].id, 4);
+  assert.equal(items[2].id, 8);
+});
+
 test('it filters by multiple belongsTo relationships', function(assert) {
   //
   const serializer = new JsonApiSerializer();
