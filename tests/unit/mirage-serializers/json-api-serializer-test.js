@@ -946,6 +946,37 @@ test('it filters by a belongsTo relationship property', function(assert) {
   assert.equal(items[5].id, 10);
 });
 
+test('it handles an known filter', function(assert) {
+  //
+  const serializer = new JsonApiSerializer();
+
+  let json = {
+      data: [
+        generateModel('post', 1, {
+          title: 'foo',
+          color: 'red'
+        }, {}),
+        generateModel('post', 2, {
+          title: 'foobar',
+          color: 'red'
+        }, {}),
+        generateModel('post', 3, {
+          title: 'foobar',
+          color: 'blue'
+        }, {}),
+      ]
+    },
+    request = {
+      queryParams: {
+        'filter[foo]': 'bar',
+      }
+    },
+    result = serializer._serialize(json, request);
+
+  assert.equal(result.data.length, 3);
+
+});
+
 test('it sorts response by property', function(assert) {
   const serializer = new JsonApiSerializer();
 

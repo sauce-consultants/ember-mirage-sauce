@@ -298,8 +298,9 @@ export default JSONAPISerializer.extend({
 
             } else {
               if (logFirst) {
-                this.log(`1.${index}.2 Filter did not know how to handle "${filter.property}" ${record.id}`);
+                this.log(`1.${index}.2 Filter did not know how to handle "${filter.property}" ${record.id} so it was ignored`);
               }
+              match = true;
             }
           })
 
