@@ -295,6 +295,164 @@ test('it sorts response by property decending', function(assert) {
 
 });
 
+test('it sorts response by a relationship property', function(assert) {
+  const serializer = new JsonApiSerializer();
+
+  let json = {
+      data: [
+        generateModel('user', 1, {
+          age: 12
+        }, {
+          car: {
+            data: {
+              id: 1,
+              type: 'car'
+            }
+          }
+        }),
+        generateModel('user', 2, {
+          age: 4
+        }, {
+          car: {
+            data: {
+              id: 2,
+              type: 'car'
+            }
+          }
+        }),
+        generateModel('user', 3, {
+          age: 82
+        }, {
+          car: {
+            data: {
+              id: 3,
+              type: 'car'
+            }
+          }
+        }),
+        generateModel('user', 4, {
+          age: 2
+        }, {
+          car: {
+            data: {
+              id: 4,
+              type: 'car'
+            }
+          }
+        }),
+      ],
+      included: [
+        generateModel('car', 1, {
+          year: '1999',
+        }),
+        generateModel('car', 2, {
+          year: '1998',
+        }),
+        generateModel('car', 3, {
+          year: '2012',
+        }),
+        generateModel('car', 4, {
+          year: '2004',
+        }),
+      ]
+    },
+    request = {
+      queryParams: {
+        'sort': 'car.year',
+      }
+    },
+    result = serializer._serialize(json, request);
+
+  assert.equal(result.data.length, 4);
+
+  let items = result.data;
+
+  assert.equal(items[0].id, 2);
+  assert.equal(items[1].id, 1);
+  assert.equal(items[2].id, 4);
+  assert.equal(items[3].id, 3);
+
+});
+
+test('it sorts response by a relationship property decending', function(assert) {
+  const serializer = new JsonApiSerializer();
+
+  let json = {
+      data: [
+        generateModel('user', 1, {
+          age: 12
+        }, {
+          car: {
+            data: {
+              id: 1,
+              type: 'car'
+            }
+          }
+        }),
+        generateModel('user', 2, {
+          age: 4
+        }, {
+          car: {
+            data: {
+              id: 2,
+              type: 'car'
+            }
+          }
+        }),
+        generateModel('user', 3, {
+          age: 82
+        }, {
+          car: {
+            data: {
+              id: 3,
+              type: 'car'
+            }
+          }
+        }),
+        generateModel('user', 4, {
+          age: 2
+        }, {
+          car: {
+            data: {
+              id: 4,
+              type: 'car'
+            }
+          }
+        }),
+      ],
+      included: [
+        generateModel('car', 1, {
+          year: '1999',
+        }),
+        generateModel('car', 2, {
+          year: '1998',
+        }),
+        generateModel('car', 3, {
+          year: '2012',
+        }),
+        generateModel('car', 4, {
+          year: '2004',
+        }),
+      ]
+    },
+    request = {
+      queryParams: {
+        'sort': '-car.year',
+      }
+    },
+    result = serializer._serialize(json, request);
+
+  assert.equal(result.data.length, 4);
+
+  let items = result.data;
+
+  assert.equal(items[0].id, 3);
+  assert.equal(items[1].id, 4);
+  assert.equal(items[2].id, 1);
+  assert.equal(items[3].id, 2);
+
+});
+
 function generateModel(type, id, attributes, relationships) {
   return {
     attributes,

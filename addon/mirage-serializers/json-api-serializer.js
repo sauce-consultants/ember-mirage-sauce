@@ -124,12 +124,14 @@ export default JSONAPISerializer.extend({
   },
 
   _serialize(json, request) {
-    this.log("===========");
-    this.log("= Serialize");
+    this.log("====================");
+    this.log("MIRAGE SAUCE REQUEST");
+    this.log("====================");
     // Get filter params from request
-    this.log("> json", json);
+    this.log("> payload data", json);
+    this.log("> request object", request);
+
     let filters = this._extractFilterParams(request.queryParams);
-    this.log("> filters", request.queryParams);
     // Filter data
     json.data = this.filterResponse(json, filters);
     // Sort data
@@ -164,88 +166,103 @@ export default JSONAPISerializer.extend({
     @return {Array}
    */
   filterResponse(json, filters) {
-    this.log("= Filter Response");
+
     let data = json.data
-    filters.forEach((filter) => {
-      this.log("filter", filter);
-      if (this.ignoreFilters.indexOf(filter.property) !== -1) {
-        this.log(`ignoring ${filter.property} filter`);
-        return;
-      }
-      data = data.filter((record) => {
-        let match = false;
-        filter.property = dasherize(filter.property);
-        filter.values.forEach((value) => {
-          let attribute = get(record, `attributes.${filter.property}`);
 
-          // Convert bool to string
-          if (typeof(attribute) === "boolean") {
-            attribute = attribute.toString();
-          }
+    if (filters.length) {
 
-          // Check for an attribute match
-          if (filter.property === this.searchKey && value) {
-            if (this.filterBySearch(record, value)) {
-              this.log(`> Filter by search key ${filter.property}`);
-              match = true;
+      this.log("1.  Filter the response: filters", filters);
+
+
+      filters.forEach((filter, index) => {
+
+        this.log(`1.${index} filter`, filter);
+
+        if (this.ignoreFilters.indexOf(filter.property) !== -1) {
+          this.log(`   ignoring ${filter.property} filter`);
+          return;
+        }
+        data = data.filter((record) => {
+
+          let match = false;
+
+          filter.property = dasherize(filter.property);
+
+          filter.values.forEach((value) => {
+
+            let attribute = get(record, `attributes.${filter.property}`);
+
+            // Convert bool to string
+            if (typeof(attribute) === "boolean") {
+              attribute = attribute.toString();
             }
-          } else if (value === attribute) {
-            this.log(`> Filter by attribute ${filter.property}`);
-            match = true;
-          } else if (filter.property.endsWith('-id')) {
-            let relationship = filter.property.replace('-id', ''),
-              path = `relationships.${relationship}.data.id`;
 
-            this.log(`> Filter by belongsTo, ${filter.property} : ${path}`);
-            // Check for a relationship match
-            if (value === get(record, path)) {
+            // Check for an attribute match
+            if (filter.property === this.searchKey && value) {
+              if (this.filterBySearch(record, value)) {
+                this.log(`   Filter by search key ${filter.property}`);
+                match = true;
+              }
+            } else if (value === attribute) {
+              this.log(`   Filter by attribute ${filter.property}`);
               match = true;
-            } else {
-              this.log(`!- relationship ${relationship} not found`);
-            }
-          } else if (filter.property.endsWith('-ids')) {
-            // Has Many Relationship
-            let relationship = filter.property.replace('-ids', ''),
-              path = `relationships.${pluralize(relationship)}.data`;
+            } else if (filter.property.endsWith('-id')) {
+              let relationship = filter.property.replace('-id', ''),
+                path = `relationships.${relationship}.data.id`;
 
-            this.log(`> Filter by hasMany, ${filter.property} : ${path}`);
+              this.log(`   Filter by belongsTo, ${filter.property} : ${path}`);
+              // Check for a relationship match
+              if (value === get(record, path)) {
+                match = true;
+              } else {
+                this.log(`!- relationship ${relationship} not found`);
+              }
+            } else if (filter.property.endsWith('-ids')) {
+              // Has Many Relationship
+              let relationship = filter.property.replace('-ids', ''),
+                path = `relationships.${pluralize(relationship)}.data`;
 
-            // Loop though relationships for a match
-            get(record, path).forEach(
-              (related) => {
-                if (value === related.id) {
+              this.log(`   Filter by hasMany, ${filter.property} : ${path}`);
+
+              // Loop though relationships for a match
+              get(record, path).forEach(
+                (related) => {
+                  if (value === related.id) {
+                    match = true;
+                  }
+                }
+              );
+            } else if (filter.property.includes('.')) {
+
+              let segments = filter.property.split('.'),
+                // last item will be the property
+                relationshipProperty = segments[segments.length - 1];
+              // check this path exists in the includes property of our response data
+
+              if (relationshipProperty !== "id") {
+                relationshipProperty = `attributes.${relationshipProperty}`;
+              }
+
+              // find the nested relationship from the included array
+              let relationship = findNestedRelationship(record, json.included, filter.property);
+
+              if (relationship) {
+
+                if (get(relationship, relationshipProperty) === value) {
                   match = true;
                 }
               }
-            );
-          } else if (filter.property.includes('.')) {
-
-            let segments = filter.property.split('.'),
-              // last item will be the property
-              relationshipProperty = segments[segments.length - 1];
-            // check this path exists in the includes property of our response data
-
-            if (relationshipProperty !== "id") {
-              relationshipProperty = `attributes.${relationshipProperty}`;
             }
-
-            // find the nested relationship from the included array
-            let relationship = findNestedRelationship(record, json.included, filter.property);
-
-            if (relationship) {
-
-              if (get(relationship, relationshipProperty) === value) {
-                match = true;
-              }
-            }
-          }
-          /*else {
-                     this.log(`did not know how to handle ${filter.property} filter`);
-                   }*/
-        })
-        return match;
-      });
-    })
+            /*else {
+                       this.log(`did not know how to handle ${filter.property} filter`);
+                     }*/
+          })
+          return match;
+        });
+      })
+    } else {
+      this.log("1.  Filter the response: No filters set");
+    }
     return data;
   },
   /**
@@ -278,6 +295,7 @@ export default JSONAPISerializer.extend({
 
     return matched;
   },
+
   /**
     Order responses by sort param
 
@@ -296,26 +314,46 @@ export default JSONAPISerializer.extend({
       data = json.data;
 
     if (sort && data.length > 0) {
+
+      this.log("2.  Sort the response", sort);
+
       // does this sort param start with "-"
       if (sort.indexOf('-') === 0) {
         // sort decending
         desc = true;
         // remove prefixed '-'
         sort = sort.substring(1);
+        this.log("2.0 Sort direction: descending");
+      } else {
+        this.log("2.0 Sort direction: ascending");
       }
+
       // find the sort path
       if (this._isAttribute(sort)) {
+
         let path = this._getAttributePath(sort, data[0]);
+
+        this.log(`2.1 Sort by attribute "${sort}". Path:`);
+        this.log(`2.2 Sort by path "${path}"`);
         // sort by property
         data = A(data).sortBy(path);
+
       } else if (this._isRelatedAttribute(sort)) {
+
+        this.log(`2.1 Sort by related attribute "${sort}".`);
+
         // sort by related
         data = this._sortByIncludedProperty(data, json.included, sort);
+
       }
+
       // reverse sort order?
       if (desc) {
         data = A(data).reverseObjects();
       }
+    } else {
+
+      this.log("2. Sort the response: No sort set", sort);
     }
     return data;
   },
@@ -398,34 +436,65 @@ export default JSONAPISerializer.extend({
     @return {Array}
    */
   _sortByIncludedProperty(data, included, sort) {
+
     let idPath = this._getRelatedIdPath(sort, data[0]),
       model = this._getRelatedModel(sort),
       attrPath = this._getRelatedAttributePath(sort, data[0]);
 
+
+    this.log(`2.2 Sort by path of included model "${model}" "${attrPath}"`);
+
+    let logFirst = true
+
     return data.sort((a, b) => {
+
       const aId = get(a, idPath),
         bId = get(b, idPath),
         aRelated = this._findIncludedModelById(included, model, aId),
-        bRelated = this._findIncludedModelById(included, model, bId),
-        aVal = get(aRelated, attrPath),
-        bVal = get(bRelated, attrPath),
-        aNum = parseFloat(aVal),
-        bNum = parseFloat(bVal);
+        bRelated = this._findIncludedModelById(included, model, bId);
+
+
+      let aVal = get(aRelated, attrPath),
+        bVal = get(bRelated, attrPath);
 
       // are they numbers?
-      if (isNaN(aVal) || isNaN(bVal)) {
-        return aVal < bVal;
+      if (!isNaN(parseFloat(aVal)) && !isNaN(parseFloat(bVal))) {
+
+        if (logFirst) {
+          this.log(`2.3 Sort by values as numbers`);
+          logFirst = false;
+        }
+
+        aVal = parseFloat(aVal);
+        bVal = parseFloat(bVal);
       } else {
-        return aNum < bNum;
+
+        if (logFirst) {
+          this.log(`2.3 Sort by by values as strings`);
+          logFirst = false;
+        }
+
+      }
+
+      if (aVal > bVal) {
+        return 1;
+      } else if (aVal < bVal) {
+        return -1
+      } else {
+        return 0;
       }
     });
+    // return data;
   },
+
   _isAttribute(path) {
     return path.split('.').length === 1;
   },
+
   _isRelatedAttribute(path) {
     return path.split('.').length === 2;
   },
+
   _getRelatedIdPath(property) {
     // ensure param is underscored
     property = dasherize(property);
@@ -436,6 +505,7 @@ export default JSONAPISerializer.extend({
 
     return path;
   },
+
   _getAttributePath(property, record) {
     // ensure param is underscored
     property = dasherize(property);
@@ -448,6 +518,7 @@ export default JSONAPISerializer.extend({
     }
     return path;
   },
+
   _getRelatedModel(property) {
     // ensure param is underscored
     property = dasherize(property);
@@ -455,6 +526,7 @@ export default JSONAPISerializer.extend({
     property = property.split('.')[0];
     return property;
   },
+
   _getRelatedAttributePath(property) {
     // ensure param is underscored
     property = dasherize(property);
@@ -465,11 +537,13 @@ export default JSONAPISerializer.extend({
 
     return path;
   },
+
   _findIncludedModelById(array, model, id) {
     return array.find(function(item) {
       return (item.type === pluralize(model) && item.id === id);
     })
   },
+
   _findRecordPath(property, record) {
     let path;
     // ensure param is underscored
@@ -491,6 +565,7 @@ export default JSONAPISerializer.extend({
     // warn user else
     return path;
   },
+
   log(...args) {
     if (DEBUG) {
       window.console.log(...args);
