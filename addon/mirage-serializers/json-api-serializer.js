@@ -16,7 +16,6 @@ import {
 import {
   pluralize
 } from 'ember-inflector';
-import Ember from 'ember';
 import findNestedRelationship from 'ember-mirage-sauce/utils/find-nested-relationship';
 import config from 'ember-get-config';
 
@@ -283,7 +282,6 @@ export default JSONAPISerializer.extend({
               // find the nested relationship from the included array
               let relationship = findNestedRelationship(record, json.included, filter.property);
 
-              console.log(relationship);
               if (logFirst) {
 
                 this.log(`1.${index}.2 Filter by "${filter.property}" is a relationship attribute. Path: "${relationshipProperty}"`);
@@ -594,8 +592,8 @@ export default JSONAPISerializer.extend({
     const path = `attributes.${property}`;
     // check if path is found
     if (typeof get(record, path) === 'undefined') {
-      Ember.Logger.warn(`Mirage: Could not find path ${path}`);
-      Ember.Logger.warn(record);
+      this.log(`Mirage: Could not find path ${path}`);
+      this.log(record);
     }
     return path;
   },
@@ -640,8 +638,8 @@ export default JSONAPISerializer.extend({
     }
     // check if path is found
     if (typeof get(record, path) === 'undefined') {
-      Ember.Logger.warn(`Mirage: Could not find path ${path}`);
-      Ember.Logger.warn(record);
+      this.log(`Mirage: Could not find path ${path}`);
+      this.log(record);
     }
     // warn user else
     return path;
