@@ -1123,6 +1123,47 @@ test('it ignores a filter in the ignoreFilters array', function(assert) {
 
 });
 
+test('it runs the custom filter hook', function(assert) {
+  //
+  const serializer = new JsonApiSerializer();
+
+  serializer.filterHook = (json /*, request*/ ) => {
+    //.. do stuff
+    return {
+      data: [json.data[1]]
+    };
+  }
+
+  let json = {
+      data: [
+        generateModel('post', 1, {
+          title: 'foo',
+          color: 'red'
+        }, {}),
+        generateModel('post', 2, {
+          title: 'foobar',
+          color: 'red'
+        }, {}),
+        generateModel('post', 3, {
+          title: 'foobar',
+          color: 'blue'
+        }, {}),
+      ]
+    },
+    request = {
+      queryParams: {
+        'foo': 'bar',
+      }
+    },
+    result = serializer._serialize(json, request);
+
+  assert.equal(result.data.length, 1);
+  assert.equal(result.data[0].id, 2);
+
+});
+
+
+
 test('it sorts response by property', function(assert) {
   const serializer = new JsonApiSerializer();
 

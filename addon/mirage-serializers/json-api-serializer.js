@@ -138,8 +138,12 @@ export default JSONAPISerializer.extend({
     json.data = this.sortResponse(json, get(request.queryParams, this.sortKey));
     // Any Hooks?
     const hook = this.filterHook;
+
     if (hook) {
       json = hook(json, request);
+      this.log(`3.  Filter hook called`);
+    } else {
+      this.log(`3.  Filter hook not set`);
     }
     // Paginate?
     json = this.paginate(json, request);
@@ -427,14 +431,14 @@ export default JSONAPISerializer.extend({
         total = res ? res.data.length : 0,
         pages = Math.ceil(total / size);
 
-      this.log(`3.  Pagination the response page "${page}" size "${size}"`);
+      this.log(`4.  Pagination the response page "${page}" size "${size}"`);
 
       res.data = this._sliceResults(res.data, page, size);
       res.meta = this._buildMetadata(page, size, total, pages);
 
       return res;
     } else {
-      this.log(`3.  Pagination not set`);
+      this.log(`4.  Pagination not set`);
       return res;
     }
   },
