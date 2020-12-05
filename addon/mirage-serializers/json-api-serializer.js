@@ -210,13 +210,12 @@ export default JSONAPISerializer.extend({
             }
             // Is this an attribute filter?
             else if (this._isAttributeKey(filter.property, record)) {
-
+              let attribute = get(record, attributePath);
+              
               // Convert bool to string
               if (typeof(attribute) === "boolean") {
                 attribute = attribute.toString();
               }
-
-              let attribute = get(record, attributePath);
 
               if (logFirst) {
                 this.log(`1.${index}.2 Filter by attribute ${filter.property}`);
