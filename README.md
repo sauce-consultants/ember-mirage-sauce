@@ -118,6 +118,20 @@ export default ApplicationSerializer.extend({
 });
 ```
 
+To customize which key in the `filter` query parameter is going to be used, you can override the `searchKey` property on your models mirage serializer.
+
+
+```
+//.. in mirage/serializers/post
+import ApplicationSerializer from './application';
+
+export default ApplicationSerializer.extend({
+
+  searchKey: 'fulltext',
+
+});
+```
+
 ### Pagination
 
 Responses can be paginated by providing a page[size] & page[number] attribute.
