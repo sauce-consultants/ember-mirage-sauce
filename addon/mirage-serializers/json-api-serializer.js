@@ -181,7 +181,7 @@ export default JSONAPISerializer.extend({
           return;
         }
 
-        const attributePath = `attributes.${filter.property}`;
+        const attributePath = `attributes.${dasherize(filter.property)}`;
 
         let logFirst = true;
 
@@ -210,10 +210,18 @@ export default JSONAPISerializer.extend({
             }
             // Is this an attribute filter?
             else if (this._isAttributeKey(filter.property, record)) {
+
+
               let attribute = get(record, attributePath);
-              
+
+
               // Convert bool to string
               if (typeof(attribute) === "boolean") {
+                attribute = attribute.toString();
+              }
+
+              // Convert number to string
+              if (typeof(attribute) === "number") {
                 attribute = attribute.toString();
               }
 
