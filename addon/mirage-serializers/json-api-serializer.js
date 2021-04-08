@@ -1,26 +1,14 @@
-import {
-  JSONAPISerializer
-} from 'ember-cli-mirage';
-import {
-  A
-} from '@ember/array';
-import {
-  isEmpty
-} from '@ember/utils';
-import {
-  get
-} from '@ember/object';
-import {
-  dasherize,
-} from '@ember/string';
-import {
-  pluralize
-} from 'ember-inflector';
-import findNestedRelationship from 'ember-mirage-sauce/utils/find-nested-relationship';
-import config from 'ember-get-config';
+import { JSONAPISerializer } from "ember-cli-mirage";
+import { A } from "@ember/array";
+import { isEmpty } from "@ember/utils";
+import { get } from "@ember/object";
+import { dasherize } from "@ember/string";
+import { pluralize } from "ember-inflector";
+import findNestedRelationship from "ember-mirage-sauce/utils/find-nested-relationship";
+import config from "ember-get-config";
 
-const DEBUG = config['mirage-sauce'] ? config['mirage-sauce'].debug : false;
-const DEFAULT_SEARCH_FIELDS = ['email', 'name', 'firstName', 'lastName'];
+const DEBUG = config["mirage-sauce"] ? config["mirage-sauce"].debug : false;
+const DEFAULT_SEARCH_FIELDS = ["email", "name", "firstName", "lastName"];
 
 /**
   A custom JSONAPISerializer that adds sorting, filtering, search &
@@ -52,7 +40,7 @@ export default JSONAPISerializer.extend({
     @default "search"
     @type {string}
    */
-  searchKey: 'search',
+  searchKey: "search",
 
   /**
     Query param name for the sort parameter
@@ -62,7 +50,7 @@ export default JSONAPISerializer.extend({
     @default "sort"
     @type {string}
    */
-  sortKey: 'sort',
+  sortKey: "sort",
 
   /**
     Query param name for the filter parameters
@@ -72,7 +60,7 @@ export default JSONAPISerializer.extend({
     @default "filter"
     @type {string}
    */
-  filterKey: 'filter',
+  filterKey: "filter",
 
   /**
     Define any filter keys to ignore in mirage
@@ -165,15 +153,12 @@ export default JSONAPISerializer.extend({
     @return {Array}
    */
   filterResponse(json, filters) {
-
-    let data = json.data
+    let data = json.data;
 
     if (filters.length) {
-
       this.log("1.  Filter the response: filters", filters);
 
       filters.forEach((filter, index) => {
-
         this.log(`1.${index}.0 filter`, filter);
 
         if (this.ignoreFilters.indexOf(filter.property) !== -1) {
@@ -186,13 +171,11 @@ export default JSONAPISerializer.extend({
         let logFirst = true;
 
         data = data.filter((record) => {
-
           let match = false;
 
           filter.property = dasherize(filter.property);
 
           filter.values.forEach((value) => {
-
             if (logFirst) {
               this.log(`1.${index}.1 Filter ${filter.property}="${value}"`);
             }
@@ -201,8 +184,14 @@ export default JSONAPISerializer.extend({
             // Is this a search term?
             if (filter.property === this.searchKey && value) {
               if (logFirst) {
-                this.log(`1.${index}.2 Filter by search key: ${filter.property}="${value}"`);
-                this.log(`1.${index}.3 Search the followin attributes: ${this.searchByFields.join(', ')}`);
+                this.log(
+                  `1.${index}.2 Filter by search key: ${filter.property}="${value}"`
+                );
+                this.log(
+                  `1.${index}.3 Search the followin attributes: ${this.searchByFields.join(
+                    ", "
+                  )}`
+                );
               }
               if (this.filterBySearch(record, value)) {
                 match = true;
@@ -210,18 +199,15 @@ export default JSONAPISerializer.extend({
             }
             // Is this an attribute filter?
             else if (this._isAttributeKey(filter.property, record)) {
-
-
               let attribute = get(record, attributePath);
 
-
               // Convert bool to string
-              if (typeof(attribute) === "boolean") {
+              if (typeof attribute === "boolean") {
                 attribute = attribute.toString();
               }
 
               // Convert number to string
-              if (typeof(attribute) === "number") {
+              if (typeof attribute === "number") {
                 attribute = attribute.toString();
               }
 
@@ -234,12 +220,14 @@ export default JSONAPISerializer.extend({
               }
             }
             // Is this a related belongs to id?
-            else if (filter.property.endsWith('-id')) {
-              let relationship = filter.property.replace('-id', ''),
+            else if (filter.property.endsWith("-id")) {
+              let relationship = filter.property.replace("-id", ""),
                 path = `relationships.${relationship}.data.id`;
 
               if (logFirst) {
-                this.log(`1.${index}.2 Filter by "${filter.property}" is a belongsTo relationship. Path: ${path}`);
+                this.log(
+                  `1.${index}.2 Filter by "${filter.property}" is a belongsTo relationship. Path: ${path}`
+                );
               }
 
               // check the related model is present in the response
@@ -250,40 +238,43 @@ export default JSONAPISerializer.extend({
                 }
               } else {
                 if (logFirst) {
-                  this.log(`1.${index}.3 There were no "${relationship}" models found in the includes response! Did you include them in your request?`);
+                  this.log(
+                    `1.${index}.3 There were no "${relationship}" models found in the includes response! Did you include them in your request?`
+                  );
                 }
               }
             }
             // Is this a related hasMany to id(s)?
-            else if (filter.property.endsWith('-ids')) {
+            else if (filter.property.endsWith("-ids")) {
               // Has Many Relationship
-              let relationship = filter.property.replace('-ids', ''),
+              let relationship = filter.property.replace("-ids", ""),
                 path = `relationships.${pluralize(relationship)}.data`;
 
               if (logFirst) {
-                this.log(`1.${index}.2 Filter by "${filter.property}" is a hasMany relationship. Path: ${path}`);
+                this.log(
+                  `1.${index}.2 Filter by "${filter.property}" is a hasMany relationship. Path: ${path}`
+                );
               }
 
               // check the related model is present in the response
               if (this._hasIncludedRelationship(relationship, json.included)) {
                 // Loop though relationships for a match
-                get(record, path).forEach(
-                  (related) => {
-                    if (parseInt(value) === parseInt(related.id)) {
-                      match = true;
-                    }
+                get(record, path).forEach((related) => {
+                  if (parseInt(value) === parseInt(related.id)) {
+                    match = true;
                   }
-                );
+                });
               } else {
                 if (logFirst) {
-                  this.log(`1.${index}.3 There were no "${relationship}" models found in the includes response! Did you include them in your request?`);
+                  this.log(
+                    `1.${index}.3 There were no "${relationship}" models found in the includes response! Did you include them in your request?`
+                  );
                 }
               }
             }
             // Is this a related attribute?
-            else if (filter.property.includes('.')) {
-
-              let segments = filter.property.split('.'),
+            else if (filter.property.includes(".")) {
+              let segments = filter.property.split("."),
                 // last item will be the property
                 relationshipProperty = segments[segments.length - 1];
               // check this path exists in the includes property of our response data
@@ -293,34 +284,38 @@ export default JSONAPISerializer.extend({
               }
 
               // find the nested relationship from the included array
-              let relationship = findNestedRelationship(record, json.included, filter.property);
+              let relationship = findNestedRelationship(
+                record,
+                json.included,
+                filter.property
+              );
 
               if (logFirst) {
-
-                this.log(`1.${index}.2 Filter by "${filter.property}" is a relationship attribute. Path: "${relationshipProperty}"`);
-
+                this.log(
+                  `1.${index}.2 Filter by "${filter.property}" is a relationship attribute. Path: "${relationshipProperty}"`
+                );
               }
 
               if (relationship) {
-
                 if (get(relationship, relationshipProperty) == value) {
                   match = true;
                 }
               }
-
             } else {
               if (logFirst) {
-                this.log(`1.${index}.2 Filter did not know how to handle "${filter.property}" ${record.id} so it was ignored`);
+                this.log(
+                  `1.${index}.2 Filter did not know how to handle "${filter.property}" ${record.id} so it was ignored`
+                );
               }
               match = true;
             }
-          })
+          });
 
           logFirst = false;
 
           return match;
         });
-      })
+      });
     } else {
       this.log("1.  Filter the response: No filters set");
     }
@@ -337,7 +332,6 @@ export default JSONAPISerializer.extend({
     @return {boolean}
    */
   filterBySearch(record, term) {
-
     const searchFields = this.searchByFields;
 
     if (isEmpty(searchFields)) {
@@ -350,7 +344,10 @@ export default JSONAPISerializer.extend({
     searchFields.forEach((field) => {
       const fieldValue = get(record, `attributes.${dasherize(field)}`);
 
-      if (!isEmpty(fieldValue) && fieldValue.toLowerCase().search(term.toLowerCase()) !== -1) {
+      if (
+        !isEmpty(fieldValue) &&
+        fieldValue.toLowerCase().search(term.toLowerCase()) !== -1
+      ) {
         matched = true;
       }
     });
@@ -371,16 +368,14 @@ export default JSONAPISerializer.extend({
     @return {Array}
    */
   sortResponse(json, sort) {
-
     let desc = false,
       data = json.data;
 
     if (sort && data.length > 0) {
-
       this.log("2.  Sort the response", sort);
 
       // does this sort param start with "-"
-      if (sort.indexOf('-') === 0) {
+      if (sort.indexOf("-") === 0) {
         // sort decending
         desc = true;
         // remove prefixed '-'
@@ -392,21 +387,17 @@ export default JSONAPISerializer.extend({
 
       // find the sort path
       if (this._isAttribute(sort)) {
-
         let path = this._getAttributePath(sort, data[0]);
 
         this.log(`2.1 Sort by attribute "${sort}". Path:`);
         this.log(`2.2 Sort by path "${path}"`);
         // sort by property
         data = A(data).sortBy(path);
-
       } else if (this._isRelatedAttribute(sort)) {
-
         this.log(`2.1 Sort by related attribute "${sort}".`);
 
         // sort by related
         data = this._sortByIncludedProperty(data, json.included, sort);
-
       }
 
       // reverse sort order?
@@ -414,7 +405,6 @@ export default JSONAPISerializer.extend({
         data = A(data).reverseObjects();
       }
     } else {
-
       this.log("2.  Sort the response: No sort defined");
     }
     return data;
@@ -430,11 +420,12 @@ export default JSONAPISerializer.extend({
     @return {object}
    */
   paginate(res, request) {
-
-    if (request.queryParams['page[number]'] && request.queryParams['page[size]']) {
-
-      const page = parseInt(request.queryParams['page[number]']),
-        size = parseInt(request.queryParams['page[size]']),
+    if (
+      request.queryParams["page[number]"] &&
+      request.queryParams["page[size]"]
+    ) {
+      const page = parseInt(request.queryParams["page[number]"]),
+        size = parseInt(request.queryParams["page[size]"]),
         total = res ? res.data.length : 0,
         pages = Math.ceil(total / size);
 
@@ -458,8 +449,8 @@ export default JSONAPISerializer.extend({
     const start = (page - 1) * size;
     const end = start + size;
 
-    this.log(`3.0 total results: ${results.length}`)
-    this.log(`3.1 slice results at index: ${start} - ${end}`)
+    this.log(`3.0 total results: ${results.length}`);
+    this.log(`3.1 slice results at index: ${start} - ${end}`);
     return results.slice(start, end);
   },
 
@@ -471,7 +462,7 @@ export default JSONAPISerializer.extend({
       size,
       total,
       pages,
-    }
+    };
   },
 
   /**
@@ -482,27 +473,23 @@ export default JSONAPISerializer.extend({
     @return {Array}
    */
   _extractFilterParams(params) {
-
     let filters = A([]);
     for (var key in params) {
-
       // loop though params and match any that follow the
       // filter[foo] pattern. Then extract foo.
       if (key.substr(0, 6) === this.filterKey) {
-
-        let property = key.substr(7, (key.length - 8)),
+        let property = key.substr(7, key.length - 8),
           value = params[key],
           values = null;
 
         if (value) {
           // make sure it's a string before we split it
-          values = (value + "").split(',');
-
+          values = (value + "").split(",");
         }
         if (!isEmpty(values)) {
           filters.pushObject({
             property,
-            values
+            values,
           });
         }
       }
@@ -520,30 +507,31 @@ export default JSONAPISerializer.extend({
     @return {Array}
    */
   _sortByIncludedProperty(data, included, sort) {
-
     let idPath = this._getRelatedIdPath(sort, data[0]),
       model = this._getRelatedModel(sort),
       attrPath = this._getRelatedAttributePath(sort, data[0]);
 
-
     this.log(`2.2 Sort by path of included model "${model}" "${attrPath}"`);
 
-    let logFirst = true
+    let logFirst = true;
 
     return data.sort((a, b) => {
-
       const aId = get(a, idPath),
         bId = get(b, idPath),
         aRelated = this._findIncludedModelById(included, model, aId),
         bRelated = this._findIncludedModelById(included, model, bId);
 
+      // Bale if we didnt find a related model
+      if (!aRelated || !bRelated) {
+        this.log(`2.3 Couldnt find related model ${model} in response`);
+        return 0;
+      }
 
       let aVal = get(aRelated, attrPath),
         bVal = get(bRelated, attrPath);
 
       // are they numbers?
       if (!isNaN(parseFloat(aVal)) && !isNaN(parseFloat(bVal))) {
-
         if (logFirst) {
           this.log(`2.3 Sort by values as numbers`);
           logFirst = false;
@@ -552,18 +540,16 @@ export default JSONAPISerializer.extend({
         aVal = parseFloat(aVal);
         bVal = parseFloat(bVal);
       } else {
-
         if (logFirst) {
           this.log(`2.3 Sort by by values as strings`);
           logFirst = false;
         }
-
       }
 
       if (aVal > bVal) {
         return 1;
       } else if (aVal < bVal) {
-        return -1
+        return -1;
       } else {
         return 0;
       }
@@ -572,7 +558,7 @@ export default JSONAPISerializer.extend({
   },
 
   _isAttribute(path) {
-    return path.split('.').length === 1;
+    return path.split(".").length === 1;
   },
 
   _isAttributeKey(attribute, record) {
@@ -580,18 +566,18 @@ export default JSONAPISerializer.extend({
   },
 
   _hasIncludedRelationship(model, included) {
-    return A(included).filterBy('type', pluralize(model)).length > 0;
+    return A(included).filterBy("type", pluralize(model)).length > 0;
   },
 
   _isRelatedAttribute(path) {
-    return path.split('.').length === 2;
+    return path.split(".").length === 2;
   },
 
   _getRelatedIdPath(property) {
     // ensure param is underscored
     property = dasherize(property);
     // destructure property
-    const relatedModel = property.split('.')[0];
+    const relatedModel = property.split(".")[0];
     // define full path
     const path = `relationships.${relatedModel}.data.id`;
 
@@ -604,7 +590,7 @@ export default JSONAPISerializer.extend({
     // define full path
     const path = `attributes.${property}`;
     // check if path is found
-    if (typeof get(record, path) === 'undefined') {
+    if (typeof get(record, path) === "undefined") {
       this.log(`Mirage: Could not find path ${path}`);
       this.log(record);
     }
@@ -615,7 +601,7 @@ export default JSONAPISerializer.extend({
     // ensure param is underscored
     property = dasherize(property);
     // destructure property
-    property = property.split('.')[0];
+    property = property.split(".")[0];
     return property;
   },
 
@@ -623,7 +609,7 @@ export default JSONAPISerializer.extend({
     // ensure param is underscored
     property = dasherize(property);
     // destructure property
-    property = property.split('.')[1];
+    property = property.split(".")[1];
     // define full path
     const path = `attributes.${property}`;
 
@@ -631,9 +617,9 @@ export default JSONAPISerializer.extend({
   },
 
   _findIncludedModelById(array, model, id) {
-    return array.find(function(item) {
-      return (item.type === pluralize(model) && item.id === id);
-    })
+    return array.find(function (item) {
+      return item.type === pluralize(model) && item.id === id;
+    });
   },
 
   _findRecordPath(property, record) {
@@ -641,7 +627,7 @@ export default JSONAPISerializer.extend({
     // ensure param is underscored
     property = dasherize(property);
     // destructure property
-    const [a, b] = property.split('.');
+    const [a, b] = property.split(".");
     // work out if this is a related property or not
     // and return the key
     if (!isEmpty(b)) {
@@ -650,7 +636,7 @@ export default JSONAPISerializer.extend({
       path = `attributes.${a}`;
     }
     // check if path is found
-    if (typeof get(record, path) === 'undefined') {
+    if (typeof get(record, path) === "undefined") {
       this.log(`Mirage: Could not find path ${path}`);
       this.log(record);
     }
@@ -662,5 +648,5 @@ export default JSONAPISerializer.extend({
     if (DEBUG) {
       window.console.log(...args);
     }
-  }
+  },
 });
