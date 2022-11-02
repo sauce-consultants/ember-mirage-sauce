@@ -1,4 +1,4 @@
-import { JSONAPISerializer } from "ember-cli-mirage";
+import { JSONAPISerializer } from "miragejs";
 import { A } from "@ember/array";
 import { isEmpty } from "@ember/utils";
 import { get } from "@ember/object";
